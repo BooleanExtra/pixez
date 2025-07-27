@@ -84,3 +84,7 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 
 # Ignore Certificate
 *.pfx
+
+# FVM Version Cache
+.fvm/
+/lib/src/generated/

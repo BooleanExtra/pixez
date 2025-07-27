@@ -17,24 +17,23 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:html/parser.dart' show parse;
+import 'package:image/image.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:mobx/mobx.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pixez/er/lprinter.dart';
+import 'package:pixez/er/prefer.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:image/image.dart';
-import 'package:image_picker_android/image_picker_android.dart';
-import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
-import 'package:rhttp/rhttp.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 part 'sauce_store.g.dart';
 
@@ -62,8 +61,7 @@ abstract class SauceStoreBase with Store {
   Future findImage(
       {BuildContext? context, String? path, bool retry = false}) async {
     if (Platform.isAndroid && context != null) {
-      final pre = await SharedPreferences.getInstance();
-      final skipAlert = pre.getBool("photo_picker_type_selected") ?? false;
+      final skipAlert = Prefer.getBool("photo_picker_type_selected") ?? false;
       if (!skipAlert) {
         await showDialog(
             context: context,
@@ -83,8 +81,9 @@ abstract class SauceStoreBase with Store {
                           title: InkWell(
                             child: Text(I18n.of(context).photo_picker),
                             onTap: () {
-                              launch(
-                                  "https://developer.android.com/training/data-storage/shared/photopicker");
+                              launchUrlString(
+                                "https://developer.android.com/training/data-storage/shared/photopicker",
+                              );
                             },
                           ),
                           subtitle:
@@ -108,7 +107,7 @@ abstract class SauceStoreBase with Store {
                 ),
               );
             });
-        await pre.setBool("photo_picker_type_selected", true);
+        await Prefer.setBool("photo_picker_type_selected", true);
       }
     }
     notStart = false;
@@ -136,28 +135,27 @@ abstract class SauceStoreBase with Store {
       MapEntry("file", await MultipartFile.fromFile(path)),
     ]);
     try {
-      BotToast.showText(text: "uploading");
+      BotToast.showText(text: I18n.ofContext().uploading);
 
-      if (!userSetting.disableBypassSni) {
-        final compatibleClient = await RhttpCompatibleClient.create(
-          settings: userSetting.disableBypassSni
-              ? null
-              : ClientSettings(
-                  tlsSettings: TlsSettings(
-                    verifyCertificates: false,
-                    sni: false,
-                  ),
-                  // dnsSettings: DnsSettings.dynamic(
-                  //   resolver: (host) async {
-                  //     return ['104.26.14.28'];
-                  //   },
-                  // )
-                  ),
-        );
-        dio.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
-      }
+      // if (!userSetting.disableBypassSni) {
+      //   final compatibleClient = await RhttpCompatibleClient.create(
+      //     settings: userSetting.disableBypassSni
+      //         ? null
+      //         : ClientSettings(
+      //             tlsSettings: TlsSettings(
+      //               verifyCertificates: false,
+      //               sni: false,
+      //             ),
+      //             dnsSettings: DnsSettings.dynamic(
+      //               resolver: (host) async {
+      //                 return ['104.26.14.28'];
+      //               },
+      //             )),
+      //   );
+      //   dio.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
+      // }
       Response response = await dio.post('/search.php', data: formData);
-      BotToast.showText(text: "parsing");
+      BotToast.showText(text: I18n.ofContext().parsing);
       var document = parse(response.data);
       document.querySelectorAll('a').forEach((element) {
         var link = element.attributes['href'];

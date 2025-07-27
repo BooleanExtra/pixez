@@ -1,14 +1,16 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/illust_persist.dart';
 import 'package:pixez/saf_plugin.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'history_store.g.dart';
 part 'history_store.freezed.dart';
+part 'history_store.g.dart';
 
 @freezed
 class HistoryState with _$HistoryState {
@@ -95,13 +97,17 @@ class History extends _$History {
     });
   }
 
-  Future<void> exportData() async {
-    final uriStr =
-        await SAFPlugin.createFile("illustpersist.json", "application/json");
-    if (uriStr == null) return;
+  Future<void> exportData(BuildContext context) async {
     await illustPersistProvider.open();
     final exportData = await illustPersistProvider.getAllAccount();
-    await SAFPlugin.writeUri(
-        uriStr, Uint8List.fromList(utf8.encode(jsonEncode(exportData))));
+    final uint8List = utf8.encode(jsonEncode(exportData));
+    if (Platform.isIOS) {
+      await Sharer.exportUint8List(context, uint8List, "illustpersist.json");
+    } else {
+      final uriStr =
+          await SAFPlugin.createFile("illustpersist.json", "application/json");
+      if (uriStr == null) return;
+      await SAFPlugin.writeUri(uriStr, uint8List);
+    }
   }
 }

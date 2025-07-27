@@ -16,6 +16,7 @@
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
@@ -57,7 +58,7 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
                       .toList(),
                 )));
       } else {
-        BotToast.showText(text: "0 result");
+        BotToast.showText(text: I18n.ofContext().no_result);
       }
     });
     var query = widget.preword ?? '';
@@ -166,29 +167,37 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
                     SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final tags = _suggestionStore.autoWords!.tags;
-                        return ListTile(
-                          onTap: () {
-                            if (tagGroup.length > 1) {
-                              tagGroup.last = tags[index].name;
-                              var text = tagGroup.join(" ");
-                              _filter.text = text;
-                              _filter.selection = TextSelection.fromPosition(
-                                  TextPosition(offset: text.length));
-                              setState(() {});
-                            } else {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context, rootNavigator: true)
-                                  .push(MaterialPageRoute(builder: (context) {
-                                return ResultPage(
-                                  word: tags[index].name,
-                                  translatedName:
-                                      tags[index].translated_name ?? "",
-                                );
-                              }));
-                            }
+                        return GestureDetector(
+                          onLongPress: () {
+                            Clipboard.setData(
+                                ClipboardData(text: tags[index].name));
+                            BotToast.showText(
+                                text: I18n.of(context).copied_to_clipboard);
                           },
-                          title: Text(tags[index].name),
-                          subtitle: Text(tags[index].translated_name ?? ""),
+                          child: ListTile(
+                            onTap: () {
+                              if (tagGroup.length > 1) {
+                                tagGroup.last = tags[index].name;
+                                var text = tagGroup.join(" ");
+                                _filter.text = text;
+                                _filter.selection = TextSelection.fromPosition(
+                                    TextPosition(offset: text.length));
+                                setState(() {});
+                              } else {
+                                FocusScope.of(context).unfocus();
+                                Navigator.of(context, rootNavigator: true)
+                                    .push(MaterialPageRoute(builder: (context) {
+                                  return ResultPage(
+                                    word: tags[index].name,
+                                    translatedName:
+                                        tags[index].translated_name ?? "",
+                                  );
+                                }));
+                              }
+                            },
+                            title: Text(tags[index].name),
+                            subtitle: Text(tags[index].translated_name ?? ""),
+                          ),
                         );
                       }, childCount: _suggestionStore.autoWords!.tags.length),
                     ),
@@ -213,9 +222,47 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
           onPressed: () {
             _filter.clear();
           },
-        )
+        ),
+        IconButton(
+          icon: Icon(Icons.paste,
+              color: Theme.of(context).textTheme.bodyLarge!.color),
+          onPressed: () async {
+            try {
+              final data = await Clipboard.getData('text/plain');
+              if (data != null && data.text != null && data.text!.isNotEmpty) {
+                _filter.text = data.text!;
+                onChange(data.text!);
+              }
+            } catch (e) {}
+          },
+        ),
       ],
     );
+  }
+
+  Future<void> onChange(String query) async {
+    tagGroup.clear();
+    var tags = query
+        .split(" ")
+        .map((e) => e.trim())
+        .takeWhile((value) => value.isNotEmpty);
+    if (tags.length > 1) tagGroup.addAll(tags);
+    setState(() {});
+    bool isNum = int.tryParse(query) != null;
+    setState(() {
+      idV = isNum;
+    });
+    if (query.startsWith('https://')) {
+      Leader.pushWithUri(context, Uri.parse(query));
+      _filter.clear();
+      return;
+    }
+    var word = query.trim();
+    if (word.isEmpty) return;
+    if (isNum && word.length > 5) return; //超过五个数字应该就不需要给建议了吧
+    word = tags.last;
+    if (word.isEmpty) return;
+    _suggestionStore.fetch(word);
   }
 
   TextField _textField(
@@ -234,28 +281,7 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
           FocusScope.of(context).requestFocus(node);
         },
         onChanged: (query) {
-          tagGroup.clear();
-          var tags = query
-              .split(" ")
-              .map((e) => e.trim())
-              .takeWhile((value) => value.isNotEmpty);
-          if (tags.length > 1) tagGroup.addAll(tags);
-          setState(() {});
-          bool isNum = int.tryParse(query) != null;
-          setState(() {
-            idV = isNum;
-          });
-          if (query.startsWith('https://')) {
-            Leader.pushWithUri(context, Uri.parse(query));
-            _filter.clear();
-            return;
-          }
-          var word = query.trim();
-          if (word.isEmpty) return;
-          if (isNum && word.length > 5) return; //超过五个数字应该就不需要给建议了吧
-          word = tags.last;
-          if (word.isEmpty) return;
-          _suggestionStore.fetch(word);
+          onChange(query);
         },
         onSubmitted: (s) {
           var word = s.trim();

@@ -15,10 +15,12 @@
  */
 
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:mobx/mobx.dart';
 import 'package:pixez/constants.dart';
+import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/export_tag_history_data.dart';
 import 'package:pixez/models/tags.dart';
 import 'package:pixez/saf_plugin.dart';
@@ -83,14 +85,18 @@ abstract class _TagHistoryStoreBase with Store {
     await fetch();
   }
 
-  Future<void> exportData() async {
+  Future<void> exportData(BuildContext context) async {
     await tagsPersistProvider.open();
-    final uriStr =
-        await SAFPlugin.createFile("tag_history.json", "application/json");
-    if (uriStr == null) return;
-    await tagsPersistProvider.open();
-    final exportData = ExportData(tagHisotry: await tagsPersistProvider.getAllAccount());
-    await SAFPlugin.writeUri(
-        uriStr, Uint8List.fromList(utf8.encode(jsonEncode(exportData))));
+    final exportData =
+        ExportData(tagHisotry: await tagsPersistProvider.getAllAccount());
+    final uint8List = utf8.encode(jsonEncode(exportData));
+    if (Platform.isIOS) {
+      await Sharer.exportUint8List(context, uint8List, 'tag_history.json');
+    } else {
+      final uriStr =
+          await SAFPlugin.createFile("tag_history.json", "application/json");
+      if (uriStr == null) return;
+      await SAFPlugin.writeUri(uriStr, uint8List);
+    }
   }
 }

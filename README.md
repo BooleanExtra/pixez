@@ -19,8 +19,9 @@ Modified to remove jailbreak detection.
 
 |系统|应用市场|GitHub|云盘|
 |:---:|:---:|:---:|:---:|
-|Android|[Google Play](https://play.google.com/store/apps/details?id=com.perol.play.pixez)|[Release](https://github.com/Notsfsssf/pixez-flutter/releases)|[蓝奏云](https://wwa.lanzoui.com/b0ded45id)<br />**临时，不推荐**|
-|iOS|[App Store(美区)](https://apps.apple.com/us/app/pixez/id1494435126)|[Action Ipa](https://github.com/Notsfsssf/pixez-flutter/actions/workflows/main.yml)|/|
+|Android|[Google Play](https://play.google.com/store/apps/details?id=com.perol.play.pixez)|[Release](https://github.com/Notsfsssf/pixez-flutter/releases/latest)|[蓝奏云](https://wwa.lanzoui.com/b0ded45id)<br />**临时，不推荐**|
+|iOS|[App Store(美区)](https://apps.apple.com/us/app/pixez/id1494435126)|[Action Ipa](https://github.com/Notsfsssf/pixez-flutter/actions/workflows/build_ios.yml)|/|
+|Windows|/|[Nightly MSIX](https://github.com/Notsfsssf/pixez-flutter/actions/workflows/build_windows.yml)|/|
 
 # 预览
 
@@ -67,6 +68,6 @@ Modified to remove jailbreak detection.
 
 也可以在 Telegram 群交流反馈：[@PixEzViewer](https://t.me/PixEzChannel)
 
-Discord: [@PixEz](https://discord.gg/sBDYw5Sq)
+Discord: [@PixEz](https://discord.gg/Em9AeJbg)
 
 也可以进企鹅群交流经验或者反馈：815791942（闲聊为主）

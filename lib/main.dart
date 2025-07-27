@@ -21,18 +21,18 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/er/fetcher.dart';
-import 'package:pixez/er/hoster.dart';
 import 'package:pixez/fluent/fluentui.dart';
-import 'package:pixez/network/onezero_client.dart';
+import 'package:pixez/i18n.dart';
 import 'package:pixez/page/novel/history/novel_history_store.dart';
 import 'package:pixez/page/splash/splash_page.dart';
 import 'package:pixez/page/splash/splash_store.dart';
+import 'package:pixez/paths_plugin.dart';
 import 'package:pixez/single_instance_plugin.dart';
+import 'package:pixez/src/generated/i18n/app_localizations.dart';
 import 'package:pixez/store/account_store.dart';
 import 'package:pixez/store/book_tag_store.dart';
 import 'package:pixez/store/fullscreen_store.dart';
@@ -60,15 +60,21 @@ final FullScreenStore fullScreenStore = FullScreenStore();
 
 main(List<String> args) async {
   await Rhttp.init();
+
+  WidgetsFlutterBinding.ensureInitialized();
+
   if (Platform.isWindows || Platform.isLinux) {
+    // sqflite ffi init
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
-  }
-  WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isWindows) {
+
+    final dbPath = await Paths.getDatabaseFolderPath();
+    if (dbPath != null) databaseFactory.setDatabasesPath(dbPath);
+
+    // 确保只有一个实例正在运行
+    // Android 和 iOS 应用本身就是单例程序，无需额外操作
     SingleInstancePlugin.initialize();
   }
-
   await initFluent(args);
 
   runApp(ProviderScope(
@@ -117,11 +123,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     userSetting.init();
     accountStore.fetch();
     bookTagStore.init();
-    muteStore.fetchBanAI();
-    muteStore.fetchBanUserIds();
-    muteStore.fetchBanIllusts();
-    muteStore.fetchBanTags();
-   
+    muteStore.init();
+
     super.initState();
     if (Platform.isIOS) WidgetsBinding.instance.addObserver(this);
 
@@ -192,6 +195,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           builder: (context, child) {
             if (Platform.isIOS) child = _buildMaskBuilder(context, child);
             child = botToastBuilder(context, child);
+            I18n.context = context;
             return child;
           },
           themeMode: userSetting.themeMode,
@@ -200,15 +204,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               colorScheme: lightColorScheme,
               scaffoldBackgroundColor: lightColorScheme.surface,
               cardColor: lightColorScheme.surfaceContainer,
-              dialogBackgroundColor: lightColorScheme.surfaceContainer,
               chipTheme: ChipThemeData(
                 backgroundColor: lightColorScheme.surface,
               ),
-              canvasColor: lightColorScheme.surfaceContainer),
+              canvasColor: lightColorScheme.surfaceContainer,
+              dialogTheme: DialogThemeData(
+                  backgroundColor: lightColorScheme.surfaceContainer)),
           darkTheme: ThemeData.dark().copyWith(
               scaffoldBackgroundColor:
                   userSetting.isAMOLED ? Colors.black : null,
-              tabBarTheme: TabBarTheme(dividerColor: Colors.transparent),
+              // tabBarTheme: TabBarTheme(dividerColor: Colors.transparent),
+              tabBarTheme: TabBarThemeData(dividerColor: Colors.transparent),
               colorScheme: darkColorScheme),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

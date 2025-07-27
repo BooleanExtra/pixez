@@ -550,29 +550,32 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
                     _novelStore.novel!.title,
                     maxLines: 2,
                   ),
-                  leading: PainterAvatar(
-                    url: _novelStore.novel!.user.profileImageUrls.medium,
-                    id: _novelStore.novel!.user.id,
-                    onTap: () {
-                      Navigator.of(context)
-                          .push(MaterialPageRoute(builder: (context) {
-                        return NovelUsersPage(
-                          id: _novelStore.novel!.user.id,
-                        );
-                      }));
-                    },
+                  leading: Container(
+                    child: PainterAvatar(
+                      url: _novelStore.novel!.user.profileImageUrls.medium,
+                      id: _novelStore.novel!.user.id,
+                      size: Size(40, 40),
+                      onTap: () {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return NovelUsersPage(
+                            id: _novelStore.novel!.user.id,
+                          );
+                        }));
+                      },
+                    ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Pre'),
+                  child: Text(I18n.of(context).pre),
                 ),
                 buildListTile(
                     _novelStore.novelTextResponse!.seriesNavigation?.prevNovel),
                 Divider(),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Next'),
+                  child: Text(I18n.of(context).next),
                 ),
                 buildListTile(
                     _novelStore.novelTextResponse!.seriesNavigation?.nextNovel),

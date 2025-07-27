@@ -16,16 +16,12 @@
 
 import 'dart:io';
 
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pixez/component/new_version_chip.dart';
 import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
-import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/er/updater.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
@@ -42,13 +38,11 @@ import 'package:pixez/page/hello/setting/data_export_page.dart';
 import 'package:pixez/page/hello/setting/setting_quality_page.dart';
 import 'package:pixez/page/history/history_page.dart';
 import 'package:pixez/page/login/login_page.dart';
-import 'package:pixez/page/network/network_setting_page.dart';
 import 'package:pixez/page/novel/history/novel_history_page.dart';
 import 'package:pixez/page/novel/novel_rail.dart';
 import 'package:pixez/page/shield/shield_page.dart';
 import 'package:pixez/page/task/job_page.dart';
 import 'package:pixez/page/theme/theme_page.dart';
-import 'package:badges/badges.dart' as badges;
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
@@ -331,44 +325,6 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Future _showSavedLogDialog(BuildContext context) async {
-    var savedLogFile = await LPrinter.savedLogFile();
-    var content = savedLogFile.readAsStringSync();
-    final result = await showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Log"),
-            content: Container(
-              child: Text(content),
-              height: 400,
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text(I18n.of(context).cancel),
-                onPressed: () {
-                  Navigator.of(context).pop("CANCEL");
-                },
-              ),
-              TextButton(
-                child: Text(I18n.of(context).ok),
-                onPressed: () {
-                  Navigator.of(context).pop("OK");
-                },
-              ),
-            ],
-          );
-        });
-    switch (result) {
-      case "OK":
-        {}
-        break;
-      case "CANCEL":
-        {}
-        break;
-    }
-  }
-
   Future _showLogoutDialog(BuildContext context) async {
     final result = await showDialog(
         context: context,
@@ -399,41 +355,6 @@ class _SettingPageState extends State<SettingPage> {
         break;
       case "CANCEL":
         {}
-        break;
-    }
-  }
-
-  Future _showClearCacheDialog(BuildContext context) async {
-    final result = await showDialog(
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(I18n.of(context).clear_all_cache),
-            actions: <Widget>[
-              TextButton(
-                child: Text(I18n.of(context).cancel),
-                onPressed: () {
-                  Navigator.of(context).pop("CANCEL");
-                },
-              ),
-              TextButton(
-                child: Text(I18n.of(context).ok),
-                onPressed: () {
-                  Navigator.of(context).pop("OK");
-                },
-              ),
-            ],
-          );
-        },
-        context: context);
-    switch (result) {
-      case "OK":
-        {
-          try {
-            Directory tempDir = await getTemporaryDirectory();
-            tempDir.deleteSync(recursive: true);
-            cleanGlanceData();
-          } catch (e) {}
-        }
         break;
     }
   }

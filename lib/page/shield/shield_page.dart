@@ -17,6 +17,7 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
@@ -98,7 +99,7 @@ class _ShieldPageState extends State<ShieldPage> {
                         Text(I18n.of(context).tag),
                         IconButton(
                             onPressed: () {
-                              _showBanTagAddDialog();
+                              _showBanTagAddDialog(context);
                             },
                             icon: Icon(Icons.add))
                       ],
@@ -110,9 +111,18 @@ class _ShieldPageState extends State<ShieldPage> {
                         direction: Axis.horizontal,
                         children: <Widget>[
                           ...muteStore.banTags
-                              .map((f) => ActionChip(
-                                    onPressed: () => deleteTag(context, f),
-                                    label: Text(f.name),
+                              .map((f) => GestureDetector(
+                                    onLongPress: () {
+                                      Clipboard.setData(
+                                          ClipboardData(text: f.name));
+                                      BotToast.showText(
+                                          text: I18n.of(context)
+                                              .copied_to_clipboard);
+                                    },
+                                    child: ActionChip(
+                                      onPressed: () => deleteTag(context, f),
+                                      label: Text(f.name),
+                                    ),
                                   ))
                               .toList()
                         ],
@@ -182,7 +192,7 @@ class _ShieldPageState extends State<ShieldPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(I18n.of(context).delete),
-          content: Text('Delete this tag?'),
+          content: Text(I18n.of(context).delete_tag),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -209,18 +219,28 @@ class _ShieldPageState extends State<ShieldPage> {
     }
   }
 
-  _showBanTagAddDialog() async {
+  _showBanTagAddDialog(BuildContext context) async {
     final controller = TextEditingController();
     final result = await showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text("Input"),
-            content: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                  hintText: I18n.of(context).tag,
-                  hintStyle: TextStyle(fontSize: 12)),
+            title: Text(I18n.of(context).input),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('regex example:"r\'pattern\'"'),
+                SizedBox(
+                  height: 2,
+                ),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                      hintText: I18n.of(context).input_regexp_hint,
+                      hintStyle: TextStyle(fontSize: 12)),
+                ),
+              ],
             ),
             actions: <Widget>[
               TextButton(
@@ -249,7 +269,7 @@ class _ShieldPageState extends State<ShieldPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(I18n.of(context).delete),
-          content: Text('Delete this tag?'),
+          content: Text(I18n.of(context).delete_tag),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -282,7 +302,7 @@ class _ShieldPageState extends State<ShieldPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(I18n.of(context).delete),
-          content: Text('Delete this tag?'),
+          content: Text(I18n.of(context).delete_tag),
           actions: <Widget>[
             TextButton(
               onPressed: () {

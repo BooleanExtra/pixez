@@ -71,7 +71,6 @@ class _IllustRowPageState extends State<IllustRowPage>
   late ScrollController _scrollController;
   late EasyRefreshController _refreshController;
   bool tempView = false;
-
   @override
   void initState() {
     _refreshController = EasyRefreshController(
@@ -79,8 +78,7 @@ class _IllustRowPageState extends State<IllustRowPage>
     _scrollController = ScrollController();
     _illustStore = widget.store ?? IllustStore(widget.id, null);
     _illustStore.fetch();
-    _aboutStore =
-        IllustAboutStore(widget.id, _refreshController);
+    _aboutStore = IllustAboutStore(widget.id, _refreshController);
     super.initState();
   }
 
@@ -256,7 +254,8 @@ class _IllustRowPageState extends State<IllustRowPage>
           ),
         ),
       );
-    var expectWidth = MediaQuery.of(context).size.width * 0.7;
+    var expectWidth =
+        MediaQuery.of(context).size.width * 0.7 + userSetting.dragStartX;
     var leftWidth = MediaQuery.of(context).size.width - expectWidth;
     final atLeastWidth = 320.0;
     if (leftWidth < atLeastWidth) {
@@ -268,61 +267,81 @@ class _IllustRowPageState extends State<IllustRowPage>
     final height = (radio * expectWidth);
     final centerType = height <= screenHeight;
     if (userStore == null) userStore = UserStore(data.user.id, null, data.user);
+    final dividerWidth = 28.0;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: Container(
-        child: Stack(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: expectWidth,
-                  child: CustomScrollView(slivers: [
-                    ..._buildPhotoList(data, centerType, height),
-                    SliverToBoxAdapter(
-                        child: Container(
-                      height: MediaQuery.of(context).padding.bottom,
-                    ))
-                  ]),
-                ),
-                Expanded(
-                  child: Container(
-                    color: Theme.of(context).cardColor,
-                    child: EasyRefresh(
-                      controller: _refreshController,
-                      onLoad: () {
-                        _aboutStore.next();
-                      },
-                      child: CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
-                          SliverToBoxAdapter(
-                              child: Container(
-                                  height: MediaQuery.of(context).padding.top)),
-                          SliverToBoxAdapter(
-                            child: IllustDetailContent(
-                              illusts: data,
-                              userStore: userStore,
-                              illustStore: _illustStore,
-                              loadAbout: () {
-                                _loadAbout();
-                              },
+      child: Observer(builder: (context) {
+        return Container(
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: expectWidth,
+                    child: CustomScrollView(slivers: [
+                      ..._buildPhotoList(data, centerType, height),
+                      SliverToBoxAdapter(
+                          child: Container(
+                        height: MediaQuery.of(context).padding.bottom,
+                      ))
+                    ]),
+                  ),
+                  Expanded(
+                    child: Container(
+                      color: Theme.of(context).cardColor,
+                      child: EasyRefresh(
+                        controller: _refreshController,
+                        onLoad: () {
+                          _aboutStore.next();
+                        },
+                        child: CustomScrollView(
+                          controller: _scrollController,
+                          slivers: [
+                            SliverToBoxAdapter(
+                                child: Container(
+                                    height:
+                                        MediaQuery.of(context).padding.top)),
+                            SliverToBoxAdapter(
+                              child: IllustDetailContent(
+                                illusts: data,
+                                userStore: userStore,
+                                illustStore: _illustStore,
+                                loadAbout: () {
+                                  _loadAbout();
+                                },
+                              ),
                             ),
-                          ),
-                          _buildRecom()
-                        ],
+                            _buildRecom()
+                          ],
+                        ),
                       ),
                     ),
                   ),
+                ],
+              ),
+              Row(children: [
+                Container(
+                  width: expectWidth - (dividerWidth * 0.5),
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
+                GestureDetector(
+                  onTap: () {},
+                  onHorizontalDragUpdate: (details) {
+                    userSetting.setDragStartX(details.localPosition.dx);
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: Container(
+                    width: dividerWidth,
+                  ),
+                ),
+                Spacer()
+              ])
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -344,6 +363,11 @@ class _IllustRowPageState extends State<IllustRowPage>
             },
             onLongPress: () {
               saveStore.saveImage(_aboutStore.illusts[index]);
+              if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                _illustStore.star(
+                    restrict:
+                        userSetting.defaultPrivateLike ? "private" : "public");
+              }
             },
             child: PixivImage(
               _aboutStore.illusts[index].imageUrls.squareMedium,
@@ -401,16 +425,9 @@ class _IllustRowPageState extends State<IllustRowPage>
   Widget _buildPicture(Illusts data, double height) {
     return Center(child: Builder(
       builder: (BuildContext context) {
-        String url = userSetting.pictureQuality == 1
-            ? data.imageUrls.large
-            : data.imageUrls.medium;
+        String url = data.illustDetailUrl;
         if (data.type == "manga") {
-          if (userSetting.mangaQuality == 0)
-            url = data.imageUrls.medium;
-          else if (userSetting.mangaQuality == 1)
-            url = data.imageUrls.large;
-          else
-            url = data.metaSinglePage!.originalImageUrl!;
+          url = data.managaDetailUrl;
         }
         Widget placeWidget = Container(height: height);
         return InkWell(
@@ -475,13 +492,7 @@ class _IllustRowPageState extends State<IllustRowPage>
 
   Widget _buildIllustsItem(int index, Illusts illust, double height) {
     if (illust.type == "manga") {
-      String url;
-      if (userSetting.mangaQuality == 0)
-        url = illust.metaPages[index].imageUrls!.medium;
-      else if (userSetting.mangaQuality == 1)
-        url = illust.metaPages[index].imageUrls!.large;
-      else
-        url = illust.metaPages[index].imageUrls!.original;
+      String url = illust.managaDetailImageUrl(index);
       if (index == 0)
         return NullHero(
           child: PixivImage(
@@ -510,10 +521,10 @@ class _IllustRowPageState extends State<IllustRowPage>
       );
     }
     return index == 0
-        ? (userSetting.pictureQuality == 1
+        ? (userSetting.pictureQuality >= 1
             ? NullHero(
                 child: PixivImage(
-                  illust.metaPages[index].imageUrls!.large,
+                  illust.illustDetailImageUrl(index),
                   placeWidget: PixivImage(
                     illust.metaPages[index].imageUrls!.medium,
                     fade: false,
@@ -530,9 +541,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                 tag: widget.heroString,
               ))
         : PixivImage(
-            userSetting.pictureQuality == 0
-                ? illust.metaPages[index].imageUrls!.medium
-                : illust.metaPages[index].imageUrls!.large,
+            illust.illustDetailImageUrl(index),
             fade: false,
             placeWidget: Container(
               height: 150,
@@ -728,6 +737,14 @@ class _IllustRowPageState extends State<IllustRowPage>
   }
 
   Future<void> _pressSave(Illusts illust, int index) async {
+    if (userSetting.illustDetailSaveSkipLongPress) {
+      saveStore.saveImage(illust, index: index);
+      if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+        _illustStore.star(
+            restrict: userSetting.defaultPrivateLike ? "private" : "public");
+      }
+      return;
+    }
     showModalBottomSheet(
         context: context,
         shape: RoundedRectangleBorder(
@@ -757,10 +774,24 @@ class _IllustRowPageState extends State<IllustRowPage>
                   onTap: () async {
                     Navigator.of(context).pop();
                     saveStore.saveImage(illust, index: index);
+                    if (userSetting.starAfterSave &&
+                        (_illustStore.state == 0)) {
+                      _illustStore.star(
+                          restrict: userSetting.defaultPrivateLike
+                              ? "private"
+                              : "public");
+                    }
                   },
                   onLongPress: () async {
                     Navigator.of(context).pop();
                     saveStore.saveImage(illust, index: index);
+                    if (userSetting.starAfterSave &&
+                        (_illustStore.state == 0)) {
+                      _illustStore.star(
+                          restrict: userSetting.defaultPrivateLike
+                              ? "private"
+                              : "public");
+                    }
                   },
                   title: Text(I18n.of(context).save),
                 ),

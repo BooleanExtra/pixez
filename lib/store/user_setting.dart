@@ -20,8 +20,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:mobx/mobx.dart';
+import 'package:pixez/component/picker/utils.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
+import 'package:pixez/er/prefer.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/network/api_client.dart';
@@ -47,6 +49,7 @@ abstract class _UserSetting with Store {
   static const String MANGA_QUALITY_KEY = "manga_quality";
   static const String IS_BANGS_KEY = "is_bangs";
   static const String IS_AMOLED_KEY = "is_amoled";
+  static const String IS_TOPMODE_KEY = "is_top_mode";
   static const String STORE_PATH_KEY = "save_store";
   static const String PICTURE_SOURCE_KEY = "picture_source";
   static const String ISHELPLESSWAY_KEY = "is_helplessway";
@@ -81,7 +84,10 @@ abstract class _UserSetting with Store {
   static const String FEED_AI_BADGE_KEY = "feed_ai_badge";
   static const String ILLUST_DETAIL_SAVE_SKIP_LONG_PRESS_KEY =
       "illust_detail_save_skip_long_press";
+  static const String DRAG_START_X_KEY = "drag_start_x";
 
+  @observable
+  double dragStartX = 0;
   @observable
   bool illustDetailSaveSkipLongPress = false;
   @observable
@@ -107,6 +113,9 @@ abstract class _UserSetting with Store {
   int saveMode = 0;
   @observable
   bool isAMOLED = false;
+  // fluent ui
+  @observable
+  bool isTopMode = false;
   @observable
   String? storePath = null;
   @observable
@@ -261,14 +270,6 @@ abstract class _UserSetting with Store {
     fileNameEval = value;
   }
 
-  Color _stringToColor(String colorString) {
-    String valueString =
-        colorString.split('(0x')[1].split(')')[0]; // kind of hacky..
-    int value = int.parse(valueString, radix: 16);
-    Color otherColor = new Color(value);
-    return otherColor;
-  }
-
   @observable
   Color seedColor = Colors.blue[400]!;
 
@@ -300,6 +301,12 @@ abstract class _UserSetting with Store {
   setIsAMOLED(bool v) async {
     await prefs.setBool(IS_AMOLED_KEY, v);
     isAMOLED = v;
+  }
+
+  @action
+  setIsTopMode(bool v) async {
+    await prefs.setBool(IS_TOPMODE_KEY, v);
+    isTopMode = v;
   }
 
   @action
@@ -359,7 +366,7 @@ abstract class _UserSetting with Store {
 
   @action
   askInit() async {
-    prefs = await SharedPreferences.getInstance();
+    prefs = await Prefer.getInstance();
     int themeModeIndex = prefs.getInt(THEME_MODE_KEY) ?? 0;
     for (var i in ThemeMode.values) {
       if (i.index == themeModeIndex) {
@@ -377,6 +384,7 @@ abstract class _UserSetting with Store {
       }
     }
     isAMOLED = prefs.getBool(IS_AMOLED_KEY) ?? false;
+    isTopMode = prefs.getBool(IS_TOPMODE_KEY) ?? false;
     languageNum = prefs.getInt(LANGUAGE_NUM_KEY) ?? 0;
     disableBypassSni = prefs.getBool('disable_bypass_sni') ?? false;
     ApiClient.Accept_Language = languageList[languageNum];
@@ -407,7 +415,7 @@ abstract class _UserSetting with Store {
 
   @action
   Future<void> init() async {
-    prefs = await SharedPreferences.getInstance();
+    prefs = await Prefer.getInstance();
     zoomQuality = prefs.getInt(ZOOM_QUALITY_KEY) ?? 0;
     feedPreviewQuality = prefs.getInt(FEED_PREVIEW_QUALITY) ?? 0;
     singleFolder = prefs.getBool(SINGLE_FOLDER_KEY) ?? false;
@@ -441,6 +449,7 @@ abstract class _UserSetting with Store {
     imagePickerType = prefs.getInt(IMAGE_PICKER_TYPE_KEY) ?? 0;
     swipeChangeArtwork = prefs.getBool(SWIPE_CHANGE_ARTWORK_KEY) ?? true;
     useSaunceNaoWebview = prefs.getBool(USE_SAUNCE_NAO_WEBVIEW) ?? false;
+    dragStartX = prefs.getDouble(DRAG_START_X_KEY) ?? 0;
     illustDetailSaveSkipLongPress =
         prefs.getBool(ILLUST_DETAIL_SAVE_SKIP_LONG_PRESS_KEY) ?? false;
     if (Platform.isAndroid) {
@@ -469,6 +478,12 @@ abstract class _UserSetting with Store {
   }
 
   @action
+  setDragStartX(double value) async {
+    dragStartX = value;
+    prefs.setDouble(DRAG_START_X_KEY, value);
+  }
+
+  @action
   setImagePickerType(int value) async {
     await prefs.setInt(IMAGE_PICKER_TYPE_KEY, value);
     imagePickerType = value;
@@ -480,7 +495,7 @@ abstract class _UserSetting with Store {
 
   @action
   setThemeData(Color data) async {
-    await prefs.setInt(SEED_COLOR_KEY, data.value);
+    await prefs.setInt(SEED_COLOR_KEY, data.toInt());
     seedColor = data;
   }
 

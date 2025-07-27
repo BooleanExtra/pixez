@@ -19,7 +19,6 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -30,7 +29,6 @@ import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/document_plugin.dart';
 import 'package:pixez/er/hoster.dart';
-import 'package:pixez/exts.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/main.dart';
@@ -74,12 +72,15 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
   late LightingStore _workStore;
   late LightingStore _bookmarkStore;
 
+  String _userWorkType = 'illust';
+
   String restrict = 'public';
 
   @override
   void initState() {
     _workStore = LightingStore(ApiForceSource(
-        futureGet: (bool e) => apiClient.getUserIllusts(widget.id, 'illust')));
+        futureGet: (bool e) =>
+            apiClient.getUserIllusts(widget.id, _userWorkType)));
     _bookmarkStore = LightingStore(ApiForceSource(
         futureGet: (e) =>
             apiClient.getBookmarksIllust(widget.id, restrict, null)));
@@ -219,6 +220,12 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
               id: widget.id,
               store: _workStore,
               portal: "Work",
+              workType: _userWorkType,
+              onWorkTypeChange: (String newType) {
+                setState(() {
+                  _userWorkType = newType;
+                });
+              },
             ),
             BookMarkNestedPage(
               id: widget.id,
@@ -335,7 +342,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                     if (_tabIndex == 2) _scrollController.position.jumpTo(0);
                   },
                   child: Tab(
-                    text: I18n.of(context).detail,
+                    text: I18n.of(context).user_page_info_title,
                   ),
                 ),
               ],
@@ -679,20 +686,6 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
     );
   }
 
-  _preFollowCheck(BuildContext context) async {
-    if (accountStore.now != null) {
-      if (int.parse(accountStore.now!.userId) != widget.id) {
-        return true;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Who is the most beautiful person in the world?')));
-        return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
   Container _buildAvatarFollow(BuildContext context) {
     return Container(
       child: Observer(
@@ -759,9 +752,13 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                   : Padding(
                       padding: const EdgeInsets.only(right: 16.0, bottom: 4.0),
                       child: UserFollowButton(
+                        id: widget.id,
                         followed: userStore.isFollow,
                         onPressed: () async {
                           await userStore.follow(needPrivate: false);
+                        },
+                        onConfirm: (follow, restrict) {
+                          userStore.followWithRestrict(follow, restrict);
                         },
                       ),
                     ),
@@ -822,7 +819,8 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
               metaPages: [],
               type: '',
               width: 0,
-              series: Object(),
+              series: null,
+              totalComments: 0,
               totalBookmarks: 0,
               visible: false,
               isMuted: false,

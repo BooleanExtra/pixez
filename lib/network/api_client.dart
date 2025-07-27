@@ -28,6 +28,7 @@ import 'package:intl/intl.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/models/follow_detail.dart';
 import 'package:pixez/models/illust_bookmark_tags_response.dart';
 import 'package:pixez/models/tags.dart';
 import 'package:pixez/models/ugoira_metadata_response.dart';
@@ -575,6 +576,10 @@ class ApiClient {
     });
   }
 
+  Future<Response> watchListNovel() async {
+    return httpClient.get('/v1/watchlist/novel');
+  }
+
   Future<Response> watchListNovelAdd(String seriesId) async {
     return httpClient.post('/v1/watchlist/novel/add',
         data: notNullMap({"series_id": seriesId}),
@@ -585,5 +590,68 @@ class ApiClient {
     return httpClient.post('/v1/watchlist/novel/delete',
         data: notNullMap({"series_id": seriesId}),
         options: Options(contentType: Headers.formUrlEncodedContentType));
+  }
+
+  // /v1/watchlist/manga
+  Future<Response> watchListManga() async {
+    return httpClient.get('/v1/watchlist/manga');
+  }
+
+  // /v1/illust/series?filter=for_ios&illust_series_id=
+  Future<Response> illustSeries(int illustSeriesId) async {
+    return httpClient.get('/v1/illust/series', queryParameters: {
+      'illust_series_id': illustSeriesId,
+    });
+  }
+
+  // watchlist/manga/add
+  Future<Response> watchListMangaAdd(int seriesId) async {
+    return httpClient.post('/v1/watchlist/manga/add',
+        data: notNullMap({"series_id": seriesId}),
+        options: Options(contentType: Headers.formUrlEncodedContentType));
+  }
+
+  // watchlist/manga/delete
+  Future<Response> watchListMangaDelete(int seriesId) async {
+    return httpClient.post('/v1/watchlist/manga/delete',
+        data: notNullMap({"series_id": seriesId}),
+        options: Options(contentType: Headers.formUrlEncodedContentType));
+  }
+
+  // v1/illust-series/illust
+  Future<Response> illustSeriesIllust(int illustId) async {
+    return httpClient.get('/v1/illust-series/illust', queryParameters: {
+      'illust_id': illustId,
+    });
+  }
+
+  // /v1/user/restricted-mode-settings
+  Future<Response> userRestrictedModeSettings(
+      bool isRestrictedModeEnabled) async {
+    return httpClient.post('/v1/user/restricted-mode-settings',
+        data:
+            notNullMap({"is_restricted_mode_enabled": isRestrictedModeEnabled}),
+        options: Options(contentType: Headers.formUrlEncodedContentType));
+  }
+
+  // /v1/user/restricted-mode-settings
+  Future<bool> userRestrictedModeSettingsGet() async {
+    final res = await httpClient.get('/v1/user/restricted-mode-settings');
+    return res.data['is_restricted_mode_enabled'] as bool;
+  }
+
+  Future<Response> postUserFollowAdd(int userId, String restrict) async {
+    return httpClient.post('/v1/user/follow/add',
+        data: notNullMap({
+          "user_id": userId,
+          "restrict": restrict.isEmpty ? null : restrict
+        }),
+        options: Options(contentType: Headers.formUrlEncodedContentType));
+  }
+
+  Future<FollowDetail> getUserFollowDetail(int userId) async {
+    final res = await httpClient
+        .get('/v1/user/follow/detail', queryParameters: {"user_id": userId});
+    return FollowDetail.fromJson(res.data['follow_detail']);
   }
 }
