@@ -15,6 +15,7 @@
 import 'package:intl/intl.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/models/ban_tag.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/novel_recom_response.dart';
 
@@ -106,7 +107,13 @@ extension NovelExts on Novel {
   bool hateByUser() {
     for (var t in muteStore.banTags) {
       for (var f in this.tags) {
-        if (f.name == t.name) return true;
+        if (t.isRegexMatch(f.name)) {
+          return true;
+        }
+      }
+      final allText = tags.map((e) => '#${e.name}').join('');
+      if (t.isRegexMatch(allText)) {
+        return true;
       }
     }
     for (var j in muteStore.banUserIds) {
@@ -123,6 +130,8 @@ extension NovelExts on Novel {
 }
 
 extension IllustExts on Illusts {
+  String get commentCountText =>
+      totalComments == null ? '' : '($totalComments)';
   bool hIsNotAllow() {
     if (userSetting.hIsNotAllow) {
       if (tags.any((tag) => tag.name.startsWith('R-18'))) {
@@ -135,8 +144,8 @@ extension IllustExts on Illusts {
   bool hateByUser({bool ai = false, bool includeR18Setting = false}) {
     if (includeR18Setting) {
       if (userSetting.hIsNotAllow) {
-        for (int i = 0; i < tags.length; i++) {
-          if (tags[i].name.startsWith('R-18')) return true;
+        for (final tag in tags) {
+          if (tag.name.startsWith('R-18')) return true;
         }
       }
     }
@@ -145,7 +154,13 @@ extension IllustExts on Illusts {
     }
     for (var t in muteStore.banTags) {
       for (var f in this.tags) {
-        if (f.name == t.name) return true;
+        if (t.isRegexMatch(f.name)) {
+          return true;
+        }
+      }
+      final allText = tags.map((e) => '#${e.name}').join('');
+      if (t.isRegexMatch(allText)) {
+        return true;
       }
     }
     for (var j in muteStore.banUserIds) {

@@ -279,45 +279,9 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
             }),
           ),
           body: Observer(builder: (_) {
-            if (!tempView)
-              for (var i in muteStore.banillusts) {
-                if (i.illustId == widget.id.toString()) {
-                  return BanPage(
-                    name: "${I18n.of(context).illust}\n${i.name}\n",
-                    onPressed: () {
-                      setState(() {
-                        tempView = true;
-                      });
-                    },
-                  );
-                }
-              }
-            if (!tempView && _illustStore.illusts != null) {
-              for (var j in muteStore.banUserIds) {
-                if (j.userId == _illustStore.illusts!.user.id.toString()) {
-                  return BanPage(
-                    name: "${I18n.of(context).painter}\n${j.name}\n",
-                    onPressed: () {
-                      setState(() {
-                        tempView = true;
-                      });
-                    },
-                  );
-                }
-              }
-              for (var t in muteStore.banTags) {
-                for (var t1 in _illustStore.illusts!.tags) {
-                  if (t.name == t1.name)
-                    return BanPage(
-                      name: "${I18n.of(context).tag}\n${t.name}\n",
-                      onPressed: () {
-                        setState(() {
-                          tempView = true;
-                        });
-                      },
-                    );
-                }
-              }
+            final banWidget = banLogic(context);
+            if (banWidget != null) {
+              return banWidget;
             }
             return Container(
               child: Stack(
@@ -331,6 +295,63 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         ),
       ),
     );
+  }
+
+  Widget? banLogic(BuildContext context) {
+    if (tempView) return null;
+    for (var i in muteStore.banillusts) {
+      if (i.illustId == widget.id.toString()) {
+        return BanPage(
+          name: "${I18n.of(context).illust}\n${i.name}\n",
+          onPressed: () {
+            setState(() {
+              tempView = true;
+            });
+          },
+        );
+      }
+    }
+    if (_illustStore.illusts != null) {
+      for (var j in muteStore.banUserIds) {
+        if (j.userId == _illustStore.illusts!.user.id.toString()) {
+          return BanPage(
+            name: "${I18n.of(context).painter}\n${j.name}\n",
+            onPressed: () {
+              setState(() {
+                tempView = true;
+              });
+            },
+          );
+        }
+      }
+      for (var t in muteStore.banTags) {
+        final tags = _illustStore.illusts!.tags;
+        for (var t1 in tags) {
+          if (t.isRegexMatch(t1.name)) {
+            return BanPage(
+              name: "${I18n.of(context).tag}\n${t.name}\n",
+              onPressed: () {
+                setState(() {
+                  tempView = true;
+                });
+              },
+            );
+          }
+        }
+        final allText = tags.map((e) => '#${e.name}').join('');
+        if (t.isRegexMatch(allText)) {
+          return BanPage(
+            name: "${I18n.of(context).tag}\n${t.name}\n",
+            onPressed: () {
+              setState(() {
+                tempView = true;
+              });
+            },
+          );
+        }
+      }
+    }
+    return null;
   }
 
   bool supportTranslate = false;
@@ -799,9 +820,16 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
               ),
             ),
             UserFollowButton(
+              id: illust.user.id,
               followed: userStore?.isFollow ?? illust.user.isFollowed ?? false,
               onPressed: () async {
                 await userStore?.follow();
+                if (userStore?.isFollow != null) {
+                  _illustStore.illusts?.user.isFollowed = userStore?.isFollow;
+                }
+              },
+              onConfirm: (follow, restrict) {
+                userStore?.followWithRestrict(follow, restrict);
                 if (userStore?.isFollow != null) {
                   _illustStore.illusts?.user.isFollowed = userStore?.isFollow;
                 }

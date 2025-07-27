@@ -8,6 +8,7 @@ import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/glance_illust_persist.dart';
 import 'package:pixez/page/history/history_store.dart';
+import 'package:pixez/page/novel/history/novel_history_store.dart';
 
 class DataExportPage extends StatefulWidget {
   const DataExportPage({super.key});
@@ -28,134 +29,173 @@ class _DataExportPageState extends State<DataExportPage> {
       appBar: AppBar(
         title: Text(I18n.of(context).app_data),
       ),
-      body: Card(
-        margin: EdgeInsets.all(8.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Builder(builder: (context) {
-                return ListTile(
-                  title: Text(I18n.of(context).export_title),
-                  subtitle: Text(I18n.of(context).export_tag_history),
-                  onTap: () async {
-                    try {
-                      await tagHistoryStore.exportData(context);
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
-                );
-              }),
-              ListTile(
-                title: Text(I18n.of(context).import_title),
-                subtitle: Text(I18n.of(context).import_tag_history),
-                onTap: () async {
-                  try {
-                    await tagHistoryStore.importData();
-                  } catch (e) {
-                    print(e);
-                    BotToast.showText(text: e.toString());
-                  }
-                },
-              ),
-              Divider(),
-              Builder(builder: (context) {
-                return ListTile(
-                  title: Text(I18n.of(context).export_title),
-                  subtitle: Text(I18n.of(context).export_bookmark_tag),
-                  onTap: () async {
-                    try {
-                      await bookTagStore.exportData(context);
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
-                );
-              }),
-              ListTile(
-                title: Text(I18n.of(context).import_title),
-                subtitle: Text(I18n.of(context).import_bookmark_tag),
-                onTap: () async {
-                  try {
-                    await bookTagStore.importData();
-                  } catch (e) {
-                    print(e);
-                    BotToast.showText(text: e.toString());
-                  }
-                },
-              ),
-              Divider(),
-              Consumer(builder: (context, ref, widget) {
-                return ListTile(
-                  title: Text(I18n.of(context).export_title),
-                  subtitle: Text(I18n.of(context).export_illust_history),
-                  onTap: () async {
-                    try {
-                      await ref.read(historyProvider.notifier).fetch();
-                      await ref.read(historyProvider.notifier).exportData(context);
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
-                );
-              }),
-              Consumer(builder: (context, ref, widget) {
-                return ListTile(
-                  title: Text(I18n.of(context).import_title),
-                  subtitle: Text(I18n.of(context).import_illust_history),
-                  onTap: () async {
-                    try {
-                      await ref.read(historyProvider.notifier).fetch();
-                      await ref.read(historyProvider.notifier).importData();
-                    } catch (e) {
-                      print(e);
-                      BotToast.showText(text: e.toString());
-                    }
-                  },
-                );
-              }),
-              Divider(),
-              Consumer(builder: (context, ref, widget) {
-                return ListTile(
-                  title: Text(I18n.of(context).export_title),
-                  subtitle: Text(I18n.of(context).export_mute_data),
-                  onTap: () async {
-                    try {
-                      await muteStore.export(context);
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
-                );
-              }),
-              Consumer(builder: (context, ref, widget) {
-                return ListTile(
-                  title: Text(I18n.of(context).import_title),
-                  subtitle: Text(I18n.of(context).import_mute_data),
-                  onTap: () async {
-                    try {
-                      await muteStore.importFile();
-                    } catch (e) {
-                      print(e);
-                      BotToast.showText(text: e.toString());
-                    }
-                  },
-                );
-              }),
-              Divider(),
-              ListTile(
-                title: Text(I18n.of(context).clear_all_cache),
-                onTap: () async {
-                  try {
-                    await _showClearCacheDialog(context);
-                  } catch (e) {}
-                },
-              ),
-            ],
-          ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Card(
+              margin: EdgeInsets.all(8.0),
+              child: _buildColumn(context),
+            ),
+            Container(height: MediaQuery.of(context).padding.bottom + 20)
+          ],
         ),
       ),
+    );
+  }
+
+  Column _buildColumn(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Builder(builder: (context) {
+          return ListTile(
+            title: Text(I18n.of(context).export_title),
+            subtitle: Text(I18n.of(context).export_tag_history),
+            onTap: () async {
+              try {
+                await tagHistoryStore.exportData(context);
+              } catch (e) {
+                print(e);
+              }
+            },
+          );
+        }),
+        ListTile(
+          title: Text(I18n.of(context).import_title),
+          subtitle: Text(I18n.of(context).import_tag_history),
+          onTap: () async {
+            try {
+              await tagHistoryStore.importData();
+            } catch (e) {
+              print(e);
+              BotToast.showText(text: e.toString());
+            }
+          },
+        ),
+        Divider(),
+        Builder(builder: (context) {
+          return ListTile(
+            title: Text(I18n.of(context).export_title),
+            subtitle: Text(I18n.of(context).export_bookmark_tag),
+            onTap: () async {
+              try {
+                await bookTagStore.exportData(context);
+              } catch (e) {
+                print(e);
+              }
+            },
+          );
+        }),
+        ListTile(
+          title: Text(I18n.of(context).import_title),
+          subtitle: Text(I18n.of(context).import_bookmark_tag),
+          onTap: () async {
+            try {
+              await bookTagStore.importData();
+            } catch (e) {
+              print(e);
+              BotToast.showText(text: e.toString());
+            }
+          },
+        ),
+        Divider(),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).export_title),
+            subtitle: Text(I18n.of(context).export_illust_history),
+            onTap: () async {
+              try {
+                await ref.read(historyProvider.notifier).fetch();
+                await ref.read(historyProvider.notifier).exportData(context);
+              } catch (e) {
+                print(e);
+              }
+            },
+          );
+        }),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).import_title),
+            subtitle: Text(I18n.of(context).import_illust_history),
+            onTap: () async {
+              try {
+                await ref.read(historyProvider.notifier).fetch();
+                await ref.read(historyProvider.notifier).importData();
+              } catch (e) {
+                print(e);
+                BotToast.showText(text: e.toString());
+              }
+            },
+          );
+        }),
+        Divider(),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).export_title),
+            subtitle: Text(I18n.of(context).export_novel_history),
+            onTap: () async {
+              try {
+                await novelHistoryStore.fetch();
+                await novelHistoryStore.exportData(context);
+              } catch (e) {
+                print(e);
+              }
+            },
+          );
+        }),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).import_title),
+            subtitle: Text(I18n.of(context).import_novel_history),
+            onTap: () async {
+              try {
+                await novelHistoryStore.fetch();
+                await novelHistoryStore.importData();
+              } catch (e) {
+                print(e);
+                BotToast.showText(text: e.toString());
+              }
+            },
+          );
+        }),
+        Divider(),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).export_title),
+            subtitle: Text(I18n.of(context).export_mute_data),
+            onTap: () async {
+              try {
+                await muteStore.export(context);
+              } catch (e) {
+                print(e);
+              }
+            },
+          );
+        }),
+        Consumer(builder: (context, ref, widget) {
+          return ListTile(
+            title: Text(I18n.of(context).import_title),
+            subtitle: Text(I18n.of(context).import_mute_data),
+            onTap: () async {
+              try {
+                await muteStore.importFile();
+              } catch (e) {
+                print(e);
+                BotToast.showText(text: e.toString());
+              }
+            },
+          );
+        }),
+        Divider(),
+        ListTile(
+          title: Text(I18n.of(context).clear_all_cache),
+          onTap: () async {
+            try {
+              await _showClearCacheDialog(context);
+            } catch (e) {}
+          },
+        ),
+      ],
     );
   }
 

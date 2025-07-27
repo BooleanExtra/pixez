@@ -30,8 +30,8 @@ import 'package:pixez/page/hello/setting/copy_text_page.dart';
 import 'package:pixez/page/hello/setting/setting_cross_adapter_page.dart';
 import 'package:pixez/page/network/network_page.dart';
 import 'package:pixez/page/platform/platform_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingQualityPage extends StatefulWidget {
   @override
@@ -434,7 +434,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
             onTap: () {
               try {
                 if (Platform.isAndroid && !Constants.isGooglePlay)
-                  launchUrl(Uri.dataFromString(langsponsor.uri));
+                  launchUrlString(langsponsor.uri);
               } catch (e) {}
             },
             child: Row(

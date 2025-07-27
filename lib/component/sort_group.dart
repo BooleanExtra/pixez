@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 class SortGroup extends StatefulWidget {
   final List<String> children;
   final Function onChange;
+  final int initIndex;
 
-  const SortGroup({Key? key, required this.children, required this.onChange})
+  const SortGroup(
+      {Key? key,
+      required this.children,
+      required this.onChange,
+      this.initIndex = 0})
       : super(key: key);
 
   @override
@@ -16,6 +21,7 @@ class _SortGroupState extends State<SortGroup> {
 
   @override
   void initState() {
+    this.index = widget.initIndex;
     super.initState();
   }
 
@@ -36,37 +42,12 @@ class _SortGroupState extends State<SortGroup> {
         for (var (index, i) in widget.children.indexed)
           ButtonSegment(value: index, label: Text(i)),
       ],
-      selected: {index},
+      selected: {this.index},
       onSelectionChanged: (p0) {
         widget.onChange(p0.first);
         if (mounted)
           setState(() {
             this.index = p0.first;
-          });
-      },
-    );
-  }
-
-  Widget _buildChip(String i, BuildContext context) {
-    final bgColor = index == widget.children.indexOf(i)
-        ? Colors.white
-        : Theme.of(context).textTheme.bodyLarge!.color;
-    return ElevatedButton(
-      child: Text(
-        i,
-        style: TextStyle(color: bgColor),
-      ),
-      style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all<Color>(
-              index == widget.children.indexOf(i)
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).cardColor)),
-      onPressed: () {
-        int ii = widget.children.indexOf(i);
-        widget.onChange(ii);
-        if (mounted)
-          setState(() {
-            this.index = ii;
           });
       },
     );

@@ -16,18 +16,19 @@
 
 package com.perol.pixez
 
-import coil.ImageLoader
-import coil.ImageLoaderFactory
-import io.flutter.app.FlutterApplication
+import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.request.crossfade
 
-
-class PixEz : FlutterApplication(), ImageLoaderFactory {
+class PixEz : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         CrashHandler.instance.init(applicationContext)
     }
 
-    override fun newImageLoader(): ImageLoader {
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(this)
             .crossfade(true)
             .build()

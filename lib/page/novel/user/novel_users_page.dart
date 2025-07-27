@@ -193,7 +193,7 @@ class _NovelUsersPageState extends State<NovelUsersPage>
                     if (_tabIndex == 2) _scrollController.position.jumpTo(0);
                   },
                   child: Tab(
-                    text: I18n.of(context).detail,
+                    text: I18n.of(context).user_page_info_title,
                   ),
                 ),
               ],
@@ -396,10 +396,6 @@ class _NovelUsersPageState extends State<NovelUsersPage>
       },
       itemBuilder: (context) {
         return [
-          PopupMenuItem<int>(
-            value: 0,
-            child: Text(I18n.of(context).quietly_follow),
-          ),
           PopupMenuItem<int>(
             value: 1,
             child: Text(I18n.of(context).block_user),

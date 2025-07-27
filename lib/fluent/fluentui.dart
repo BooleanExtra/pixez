@@ -6,11 +6,11 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' show ColorScheme;
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/fluent/page/splash/splash_page.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/src/generated/i18n/app_localizations.dart';
 import 'package:pixez/win32_plugin.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -141,7 +141,8 @@ Widget buildFluentUI(BuildContext context) {
         theme: FluentThemeData.light().copyWith(
           visualDensity: VisualDensity.standard,
           accentColor: lightColorScheme.primary.toAccentColor(),
-          scaffoldBackgroundColor: lightColorScheme.surface,
+          scaffoldBackgroundColor: userSetting.isAMOLED ? Colors.white : null,
+          micaBackgroundColor: Colors.transparent,
           cardColor: lightColorScheme.surfaceContainer,
           focusTheme: focusTheme,
           navigationPaneTheme: _effect != WindowEffect.disabled
@@ -155,6 +156,7 @@ Widget buildFluentUI(BuildContext context) {
           visualDensity: VisualDensity.standard,
           accentColor: darkColorScheme.primary.toAccentColor(),
           scaffoldBackgroundColor: userSetting.isAMOLED ? Colors.black : null,
+          micaBackgroundColor: Colors.transparent,
           cardColor: darkColorScheme.surfaceContainer,
           focusTheme: focusTheme,
           navigationPaneTheme: _effect != WindowEffect.disabled

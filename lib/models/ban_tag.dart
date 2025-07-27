@@ -32,6 +32,24 @@ class BanTagPersist {
   Map<String, dynamic> toJson() => _$BanTagPersistToJson(this);
 }
 
+extension BanTagPersistExtension on BanTagPersist {
+  bool isRegexMatch(String tag) {
+    if (name == tag) {
+      return true;
+    }
+    if (!name.startsWith('r\'') || !name.endsWith('\'')) {
+      return false;
+    }
+    try {
+      final str = name.substring(2, name.length - 1);
+      final regex = RegExp(str);
+      return regex.hasMatch(tag);
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
 final String columnId = 'id';
 final String columnTranslateName = 'translate_name';
 final String columnName = 'name';

@@ -275,6 +275,8 @@
   "export_bookmark_tag": "お気に入りタグをエクスポート",
   "export_tag_history": "タグ履歴をエクスポート",
   "export_illust_history": "閲覧履歴をエクスポート",
+  "export_novel_history": "小説の履歴をエクスポート",
+  "import_novel_history": "小説の履歴をインポート",
   "import_bookmark_tag": "お気に入りタグをインポート",
   "import_tag_history": "タグ履歴をインポート",
   "import_illust_history": "閲覧履歴をインポート",
@@ -322,5 +324,10 @@
   "submit": "Submit",
   "thanks_for_your_feedback": "Thanks for your feedback",
   "input": "Input",
-  "remember_current_selections": "Remember current selections"
+  "remember_current_selections": "Remember current selections",
+  "cancel_follow": "Cancel follow",
+  "start_follow": "Start follow",
+  "news_follow_title": "フォロー中",
+  "user_page_info_title": "ユーザー情報",
+  "input_regexp_hint": "タグ名または正規表現を入力"
 }
