@@ -3,14 +3,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '**'
-      - '!gh-pages'
+      - "**"
+      - "!gh-pages"
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   FLUTTER_CHANNEL: "stable"
   FLUTTER_VERSION: "3.32.8"
+  BRANCH_NAME: $(echo -n ${{ github.head_ref || github.ref_name }} | tr "/" "-")
 
 jobs:
   build_ios_without_signing:
@@ -19,6 +20,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Set Variables
+        run: |
+          echo "BRANCH_NAME=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${{ env.BRANCH_NAME }}"
 
       - name: Install and Setup Flutter version
         uses: subosito/flutter-action@v2
@@ -50,12 +56,12 @@ jobs:
           ln -s ../Runner.app
           cd ..
           zip -r app-release.ipa Payload
-          mv app-release.ipa pixez-${{ github.ref_name }}-ios.ipa
+          mv app-release.ipa pixez-${{ env.BRANCH_NAME }}-ios.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: pixez-${{ github.ref_name }}-ios
+          name: pixez-${{ env.BRANCH_NAME }}-ios
           path: build/ios/iphoneos/pixez-*.ipa
 
       - name: Release IPA
@@ -73,11 +79,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set Variables
+        run: |
+          echo "BRANCH_NAME=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${{ env.BRANCH_NAME }}"
+
       - name: Install Java JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Check Java Version
         run: |
@@ -107,14 +118,14 @@ jobs:
       #     flutter pub get
       #     flutter build apk --release --split-per-abi
       #     cd build/app/outputs/flutter-apk
-      #     mv app-arm64-v8a-release.apk pixez-${{ github.ref_name }}-android-arm64-v8a.apk
-      #     mv app-armeabi-v7a-release.apk pixez-${{ github.ref_name }}-android-armeabi-v7a.apk
-      #     mv app-x86_64-release.apk pixez-${{ github.ref_name }}-android-x86_64.apk
+      #     mv app-arm64-v8a-release.apk pixez-${{ env.BRANCH_NAME }}-android-arm64-v8a.apk
+      #     mv app-armeabi-v7a-release.apk pixez-${{ env.BRANCH_NAME }}-android-armeabi-v7a.apk
+      #     mv app-x86_64-release.apk pixez-${{ env.BRANCH_NAME }}-android-x86_64.apk
 
       # - name: Upload Split APKs
       #   uses: actions/upload-artifact@v4
       #   with:
-      #     name: pixez-${{ github.ref_name }}-android-split
+      #     name: pixez-${{ env.BRANCH_NAME }}-android-split
       #     path: build/app/outputs/flutter-apk/pixez-*.apk
 
       # - name: Release Split APKs
@@ -130,19 +141,19 @@ jobs:
           flutter pub get
           flutter build apk --release
           cd build/app/outputs/flutter-apk
-          mv app-release.apk pixez-${{ github.ref_name }}-android-universal.apk
+          mv app-release.apk pixez-${{ env.BRANCH_NAME }}-android-universal.apk
 
       - name: Upload Universal APK
         uses: actions/upload-artifact@v4
         with:
-          name: pixez-${{ github.ref_name }}-android-universal
-          path: build/app/outputs/flutter-apk/pixez-${{ github.ref_name }}-android-universal.apk
+          name: pixez-${{ env.BRANCH_NAME }}-android-universal
+          path: build/app/outputs/flutter-apk/pixez-${{ env.BRANCH_NAME }}-android-universal.apk
 
       - name: Release Universal APKs
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
         uses: ncipollo/release-action@v1
         with:
-          artifacts: build/app/outputs/flutter-apk/pixez-${{ github.ref_name }}-android-universal.apk
+          artifacts: build/app/outputs/flutter-apk/pixez-${{ env.BRANCH_NAME }}-android-universal.apk
           allowUpdates: true
           omitBodyDuringUpdate: true
 
@@ -151,14 +162,14 @@ jobs:
           flutter pub get
           flutter build appbundle --release
           cd build/app/outputs/bundle/release
-          mv app-release.aab pixez-${{ github.ref_name }}-android-appbundle.aab
+          mv app-release.aab pixez-${{ env.BRANCH_NAME }}-android-appbundle.aab
 
       - name: Upload Android App Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: pixez-${{ github.ref_name }}-android-appbundle
+          name: pixez-${{ env.BRANCH_NAME }}-android-appbundle
           path: build/app/outputs/bundle/release/*.aab
-          
+
       - name: Release Android App Bundle
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
         uses: ncipollo/release-action@v1
@@ -173,6 +184,10 @@ jobs:
   #   steps:
   #     - name: Checkout Repository
   #       uses: actions/checkout@v3
+  #     - name: Set Variables
+  #       run: |
+  #         echo "BRANCH_NAME=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+  #         echo "BRANCH_NAME=${{ env.BRANCH_NAME }}"
   #     # - name: Setup SQLite environment
   #       # uses: ccorsi/setup-sqlite@v1.0.1
   #       # run: |
