@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
         shell: bash
 
-      - name: Merge upstream/master into sync_upstream
+      - name: Merge tags/latest into sync_upstream
         run: | 
           git remote add -f upstream "https://github.com/Notsfsssf/pixez-flutter.git"
           git remote -v
