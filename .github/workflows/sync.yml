@@ -52,7 +52,8 @@ jobs:
           git checkout sync_upstream
           git config pull.rebase false
           git pull origin sync_upstream
-          git merge --allow-unrelated-histories upstream/master
+          git fetch --tags origin
+          git merge --allow-unrelated-histories $(git describe --tags --abbrev=0)
         shell: bash
       - name: Push changes
         uses: ad-m/github-push-action@master
