@@ -79,7 +79,7 @@ jobs:
       - name: Check existing pull requests
         id: check_pr
         run: |
-          pr=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls?head=getBoolean:sync_upstream" | jq -r '.[0].state')
+          pr=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls?head=${{ github.repository_owner  }}:sync_upstream" | jq -r '.[0].state')
           echo "pull_request_state=$pr" >> $GITHUB_ENV
           echo "pull_request_state=$pr"
         shell: bash
@@ -107,7 +107,7 @@ jobs:
       - name: Check existing pull requests again
         id: check_pr_2
         run: |
-          pr=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls?head=getBoolean:sync_upstream" | jq -r '.[0].state')
+          pr=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls?head=${{ github.repository_owner  }}:sync_upstream" | jq -r '.[0].state')
           echo "pull_request_state=$pr" >> $GITHUB_ENV
           echo "pull_request_state=$pr"
         shell: bash
