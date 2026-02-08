@@ -13,32 +13,32 @@ publish_to: none
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.9.74+490
+version: 1.9.79+492
 
 environment:
-  sdk: ">=3.1.4"
+  sdk: ">=3.10.0"
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  dio: ^5.8.0+1
-  crypto: ^3.0.6
+  dio: ^5.9.0
+  crypto: ^3.0.7
   path_provider: ^2.1.5
-  shared_preferences: ^2.5.1
-  share_plus: ^11.0.0
+  shared_preferences: ^2.5.4
+  share_plus: ^12.0.1
   permission_handler: ^12.0.1
   archive: ^4.0.7
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.2
   bot_toast: ^4.1.3
-  package_info_plus: ^8.3.0
+  package_info_plus: ^9.0.0
   mobx: ^2.3.3+2
   flutter_mobx: ^2.2.1+1
-  in_app_purchase: ^3.2.1
-  flutter_widget_from_html: ^0.16.0
-  device_info_plus: ^11.5.0
-  flutter_displaymode: ^0.6.0
+  in_app_purchase: ^3.2.3
+  flutter_widget_from_html: ^0.17.1
+  device_info_plus: ^12.3.0
+  flutter_displaymode: ^0.7.0
   receive_sharing_intent:
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent
@@ -46,52 +46,53 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   waterfall_flow: ^3.1.1
-  animations: ^2.0.11
+  animations: ^2.1.0
   font_awesome_flutter: ^10.6.0
   json_annotation: ^4.9.0
   badges: ^3.1.2
-  image_picker: ^1.1.2
+  image_picker: ^1.2.0
   intl: any
   quiver: ^3.2.2
   flutter_inappwebview: ^6.1.5
-  dio_cache_interceptor: ^3.5.1
+  dio_cache_interceptor: ^4.0.5
   photo_view: ^0.15.0
-  image: ^4.5.4
+  image: ^4.7.2
   easy_refresh: ^3.4.0
-  flutter_hooks: ^0.20.5
-  hooks_riverpod: ^2.5.1
-  sqflite: any
+  sqflite: ^2.4.2
   dynamic_color:
     git:
       url: https://github.com/hasali19/material-foundation-flutter-packages.git
       path: packages/dynamic_color
       ref: main
-  flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
-  freezed_annotation: ^2.4.4
   # Design Style
   fluent_ui: ^4.10.0
   # Desktop Support
   flutter_acrylic: ^1.1.4
   window_manager: ^0.4.3
-  rhttp: ^0.13.0
+  rhttp: ^0.15.0
   dio_compatibility_layer: ^0.1.0
   flutter_cache_manager_dio: ^4.0.0
-  file_picker: ^9.0.0
+  file_picker: ^10.3.8
+  flutter_riverpod: ^3.0.3
+  riverpod_annotation: ^3.0.3
+  freezed_annotation: ^3.1.0
+  hooks_riverpod: ^3.0.3
+  flutter_hooks: ^0.21.3+1
+  sqlite3: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.4.10
   mobx_codegen: ^2.6.1
   json_serializable: ^6.8.0
-  analyzer: ^6.4.1
-  sqflite_common_ffi: any
+  sqflite_common_ffi: ^2.4.0+1
   msix: ^3.16.9
-  riverpod_generator: ^2.4.0
-  custom_lint: ^0.6.4
-  riverpod_lint: ^2.3.10
-  freezed: ^2.5.2
+  analyzer: 7.6.0
+  build_runner: 2.6.0
+  riverpod_generator: 3.0.3
+  custom_lint: 0.8.0
+  riverpod_lint: 3.0.3
+  freezed: 3.2.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -148,3 +149,8 @@ msix_config:
   install_certificate: false
   store: false
   publisher: CN=Notsfsssf, C=CN
+
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3

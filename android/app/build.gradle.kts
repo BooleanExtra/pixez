@@ -63,7 +63,7 @@ val packageName = if (dartEnvironmentVariables["IS_GOOGLEPLAY"] as Boolean) {
 
 android {
     namespace = "com.perol.pixez"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -78,17 +78,18 @@ android {
 
     defaultConfig {
         applicationId = packageName
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 10009750
-        versionName = "0.9.75 ev"
+        versionCode = 10009830
+        versionName = "0.9.83 sort"
         ndk {
             abiFilters.addAll(arrayOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
     splits {
         abi {
-            isEnable = true
+            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
+            isEnable = !isBuildingBundle
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86_64")
             isUniversalApk = true
@@ -122,17 +123,17 @@ flutter {
 }
 
 dependencies {
+    implementation(project(":androidndkgif"))
     implementation("androidx.core:core-remoteviews:1.1.0")
     implementation("androidx.annotation:annotation:1.9.1")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
 //    implementation project(":weiss")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("io.coil-kt.coil3:coil:3.1.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
+    implementation("com.google.android.material:material:1.13.0")
+    implementation("io.coil-kt.coil3:coil:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 //    implementation("androidx.webkit:webkit:1.4.0")
-    implementation("androidx.browser:browser:1.8.0")
-    implementation("io.github.waynejo:androidndkgif:1.0.1")
+    implementation("androidx.browser:browser:1.9.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
-    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.documentfile:documentfile:1.1.0")
 }
