@@ -52,8 +52,9 @@ jobs:
           git checkout sync_upstream
           git config pull.rebase false
           git pull origin sync_upstream
-          git fetch --tags origin
-          git merge --allow-unrelated-histories $(git describe --tags --abbrev=0)
+          git fetch upstream "refs/tags/*:refs/tags/upstream/*"
+          latest_upstream_tag=$(git for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags/upstream | head -n 1)
+          git merge --allow-unrelated-histories "$latest_upstream_tag"
         shell: bash
       - name: Push changes
         uses: ad-m/github-push-action@master
