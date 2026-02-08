@@ -1,12 +1,19 @@
 name: Sync Upstream
+run-name: "Sync from latest upstream tag at ${{ github.event.inputs.upstream_repo || 'https://github.com/Notsfsssf/pixez-flutter.git' }}"
 
 on:
   schedule:
     - cron: "0 0 * * *" # This runs the action every day at midnight (UTC)
   workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: "Upstream repo URL"
+        required: false
+        default: "https://github.com/Notsfsssf/pixez-flutter.git"
 
 env:
   pull_request_state: ""
+  upstream_repo: ${{ github.event.inputs.upstream_repo || 'https://github.com/Notsfsssf/pixez-flutter.git' }}
 
 jobs:
   sync_upstream:
@@ -28,6 +35,14 @@ jobs:
           git checkout main
           git pull
 
+      - name: Validate upstream repo
+        run: |
+          if ! git ls-remote --heads --tags "${{ env.upstream_repo }}" > /dev/null; then
+            echo "Invalid upstream repo: ${{ env.upstream_repo }}"
+            exit 1
+          fi
+        shell: bash
+
       - name: Check if sync_upstream branch exists
         id: check_branch
         run: |
@@ -45,7 +60,7 @@ jobs:
 
       - name: Merge tags/latest into sync_upstream
         run: | 
-          git remote add -f upstream "https://github.com/Notsfsssf/pixez-flutter.git"
+          git remote add -f upstream "${{ env.upstream_repo }}"
           git remote -v
           git branch --all
           git config --list
