@@ -13,6 +13,9 @@ env:
   FLUTTER_VERSION: "3.38.9"
   BRANCH_NAME: $(echo -n ${{ github.head_ref || github.ref_name }} | tr "/" "-")
 
+permissions:
+  contents: write
+
 jobs:
   build_ios_without_signing:
     name: Build Flutter for iOS (Without Signing)
