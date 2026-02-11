@@ -114,7 +114,7 @@ jobs:
         run: flutter pub get
 
       - name: Generate Code
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: flutter pub run build_runner build --delete-conflicting-outputs
 
       # - name: Build Android Split APK
       #   run: |
