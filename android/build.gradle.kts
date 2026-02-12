@@ -23,8 +23,6 @@ allprojects {
     }
 }
 
-private val androidGradlePluginPrefix = "com.android.build.gradle."
-
 private fun Project.readCompileSdk(): Int? {
     val androidExt = extensions.findByName("android") ?: return null
     val getCompileSdk = androidExt.javaClass.methods.firstOrNull {
@@ -49,13 +47,12 @@ private fun Project.applyCompileSdk(compileSdk: Int) {
 subprojects {
     val appProject = rootProject.project(":app")
 
-    plugins.whenPluginAdded { plugin ->
-        val isAndroidModule = plugin.javaClass.name.startsWith(androidGradlePluginPrefix)
-        if (!isAndroidModule || path == ":app") {
-            return@whenPluginAdded
+    afterEvaluate {
+        if (path == ":app" || extensions.findByName("android") == null) {
+            return@afterEvaluate
         }
 
-        val appCompileSdk = appProject.readCompileSdk() ?: return@whenPluginAdded
+        val appCompileSdk = appProject.readCompileSdk() ?: return@afterEvaluate
         applyCompileSdk(appCompileSdk)
     }
 }
