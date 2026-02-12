@@ -14,10 +14,49 @@
  *
  */
 
+import org.gradle.api.Project
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+private const val ANDROID_GRADLE_PLUGIN_PREFIX = "com.android.build.gradle."
+
+private fun Project.readCompileSdk(): Int? {
+    val androidExt = extensions.findByName("android") ?: return null
+    val getCompileSdk = androidExt.javaClass.methods.firstOrNull {
+        it.name == "getCompileSdk" && it.parameterCount == 0
+    } ?: return null
+    return getCompileSdk.invoke(androidExt) as? Int
+}
+
+private fun Project.applyCompileSdk(compileSdk: Int) {
+    val androidExt = extensions.findByName("android") ?: return
+    val setCompileSdk = androidExt.javaClass.methods.firstOrNull {
+        it.name == "setCompileSdk" && it.parameterCount == 1
+    } ?: return
+    setCompileSdk.invoke(androidExt, compileSdk)
+}
+
+/**
+ * Some transient Android library modules (for example ones generated from pub dependencies)
+ * can still default to compileSdk 33. Force all Android modules in this build to app's
+ * AAR metadata checks pass when dependencies require API 34+.
+ */
+subprojects {
+    val appProject = rootProject.project(":app")
+
+    plugins.whenPluginAdded {
+        val isAndroidModule = plugin.javaClass.name.startsWith(ANDROID_GRADLE_PLUGIN_PREFIX)
+        if (!isAndroidModule || path == ":app") {
+            return@whenPluginAdded
+        }
+
+        val appCompileSdk = appProject.readCompileSdk() ?: return@whenPluginAdded
+        applyCompileSdk(appCompileSdk)
     }
 }
 
