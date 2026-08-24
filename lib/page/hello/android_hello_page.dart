@@ -20,7 +20,7 @@ import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -41,6 +41,7 @@ import 'package:pixez/page/saucenao/saucenao_page.dart';
 import 'package:pixez/page/search/search_page.dart';
 import 'package:pixez/page/search/suggest/search_suggestion_page.dart';
 import 'package:pixez/page/webview/saucenao_webview_page.dart';
+import 'package:pixez/utils/haptic_util.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 class AndroidHelloPage extends StatefulWidget {
@@ -114,24 +115,23 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
               ],
             ),
             extendBody: true,
-            bottomNavigationBar:
-                wide
-                    ? null
-                    : Observer(
-                      builder: (context) {
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          transform: Matrix4.translationValues(
-                            0,
-                            fullScreenStore.fullscreen
-                                ? bottomNavigatorHeight!
-                                : 0,
-                            0,
-                          ),
-                          child: _buildNavigationBar(context),
-                        );
-                      },
-                    ),
+            bottomNavigationBar: wide
+                ? null
+                : Observer(
+                    builder: (context) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        transform: Matrix4.translationValues(
+                          0,
+                          fullScreenStore.fullscreen
+                              ? bottomNavigatorHeight!
+                              : 0,
+                          0,
+                        ),
+                        child: _buildNavigationBar(context),
+                      );
+                    },
+                  ),
           ),
         );
       },
@@ -191,6 +191,7 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
           ],
           selectedIndex: index,
           onDestinationSelected: (index) {
+            HapticUtil.selectionClick();
             if (this.index == index) {
               topStore.setTop("${index + 1}00");
             }
@@ -228,9 +229,13 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
             selectedIndex: index,
             labelType: NavigationRailLabelType.all,
             onDestinationSelected: (int index) {
+              HapticUtil.selectionClick();
+              if (this.index == index) {
+                topStore.setTop("${index + 1}00");
+              }
               _pageController.jumpToPage(index);
               setState(() {
-                index = index;
+                this.index = index;
               });
             },
             destinations: <NavigationRailDestination>[
@@ -278,13 +283,12 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
                   child: SizedBox(
                     width: 40,
                     height: 40,
-                    child:
-                        accountStore.now != null
-                            ? PainterAvatar(
-                              url: accountStore.now!.userImage,
-                              id: int.tryParse(accountStore.now!.userId) ?? 0,
-                            )
-                            : Container(),
+                    child: accountStore.now != null
+                        ? PainterAvatar(
+                            url: accountStore.now!.userImage,
+                            id: int.tryParse(accountStore.now!.userId) ?? 0,
+                          )
+                        : Container(),
                   ),
                 ),
               ),
@@ -312,7 +316,7 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
       SearchPage(),
       SettingPage(),
     ];
-    index = userSetting.welcomePageNum;
+    index = userSetting.materialWelcomePageIndex;
     _pageController = PageController(initialPage: index);
     super.initState();
     saveStore.ctx = this.context;
@@ -378,57 +382,56 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
     _LinkCloser = BotToast.showCustomText(
       onlyOne: true,
       duration: Duration(seconds: 4),
-      toastBuilder:
-          (textCancel) => Align(
-            alignment: Alignment(0, 0.8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    if (_LinkCloser != null) _LinkCloser!();
-                    var uri = Uri.tryParse(link);
-                    if (uri != null) {
-                      Leader.pushWithUri(context, uri);
-                    }
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 8.0,
-                          ),
-                          child: Text(link),
-                        ),
+      toastBuilder: (textCancel) => Align(
+        alignment: Alignment(0, 0.8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+            child: InkWell(
+              onTap: () {
+                if (_LinkCloser != null) _LinkCloser!();
+                var uri = Uri.tryParse(link);
+                if (uri != null) {
+                  Leader.pushWithUri(context, uri);
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 8.0,
                       ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: IconButton(
-                          icon: Icon(Icons.copy),
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: link));
-                            if (_LinkCloser != null) {
-                              _LinkCloser!();
-                            }
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(Icons.link_rounded),
-                      ),
-                    ],
+                      child: Text(link),
+                    ),
                   ),
-                ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: IconButton(
+                      icon: Icon(Icons.copy),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: link));
+                        if (_LinkCloser != null) {
+                          _LinkCloser!();
+                        }
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(Icons.link_rounded),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
     );
   }
 
@@ -437,8 +440,9 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
   initPlatform() async {
     try {
       String? initLastLink = await DeepLinkPlugin.getLatestLink();
-      Uri? initialLink =
-          initLastLink != null ? Uri.tryParse(initLastLink) : null;
+      Uri? initialLink = initLastLink != null
+          ? Uri.tryParse(initLastLink)
+          : null;
       if (initialLink != null) Leader.pushWithUri(context, initialLink);
       _sub = DeepLinkPlugin.uriLinkStream.listen(
         (Uri? link) => Leader.pushWithUri(context, link!),
@@ -452,10 +456,12 @@ class _AndroidHelloPageState extends State<AndroidHelloPage> {
     try {
       if (Platform.isAndroid && userSetting.saveMode != 1) {
         final info = await DeviceInfoPlugin().androidInfo;
-        Permission permission =
-            (info.version.sdkInt >= 33)
-                ? Permission.photos
-                : Permission.storage;
+        if (Constants.isGooglePlay && info.version.sdkInt >= 33) {
+          return;
+        }
+        Permission permission = (info.version.sdkInt >= 33)
+            ? Permission.photos
+            : Permission.storage;
         var granted = await permission.status;
         if (!granted.isGranted) {
           var b = await permission.request();

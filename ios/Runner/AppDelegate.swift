@@ -2,6 +2,7 @@ import UIKit
 import Flutter
 import MobileCoreServices
 import Photos
+import WidgetKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -28,6 +29,29 @@ import Photos
         })
         DocumentPlugin.bind(engineBridge)
         DeepLinkPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "DeepLinkPlugin")!)
+        bindAppWidgetChannel(engineBridge)
+    }
+
+    private func bindAppWidgetChannel(_ engineBridge: FlutterImplicitEngineBridge) {
+        let appWidgetChannel = FlutterMethodChannel(name: "com.perol.dev/app_widget",
+                                                    binaryMessenger: engineBridge.applicationRegistrar.messenger())
+        appWidgetChannel.setMethodCallHandler { call, result in
+            guard call.method == "setRecommendType" else {
+                result(FlutterMethodNotImplemented)
+                return
+            }
+            guard let args = call.arguments as? [String: Any],
+                  let type = args["type"] as? String
+            else {
+                result(FlutterError(code: "bad_args", message: "type is required", details: nil))
+                return
+            }
+            UserDefaults(suiteName: "group.pixez")?.set(type, forKey: "widget_illust_type")
+            if #available(iOS 14.0, *) {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+            result(nil)
+        }
     }
     
     override func application(
@@ -114,9 +138,10 @@ import Photos
             if isSuccess {
                 DispatchQueue.main.async {
                     let alertController = UIAlertController(title: "encode success", message: nil, preferredStyle: UIAlertController.Style.alert)
-                    UIApplication.shared.keyWindow?.rootViewController?.self.present(alertController, animated: true, completion: nil)
+                    self.visibleViewController()?.present(alertController, animated: true, completion: nil)
                     DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1) {
-                        UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)}
+                        alertController.dismiss(animated: true, completion: nil)
+                    }
                 }
                 print("Your image was successfully saved")
             } else{
@@ -169,5 +194,26 @@ import Photos
             print("kkkkkkkk\(images.count)")
         }
         return CGImageDestinationFinalize(destion!)
+    }
+    
+    private func visibleViewController() -> UIViewController? {
+        let window = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+        return visibleViewController(from: window?.rootViewController)
+    }
+    
+    private func visibleViewController(from viewController: UIViewController?) -> UIViewController? {
+        if let navigationController = viewController as? UINavigationController {
+            return visibleViewController(from: navigationController.visibleViewController)
+        }
+        if let tabBarController = viewController as? UITabBarController {
+            return visibleViewController(from: tabBarController.selectedViewController)
+        }
+        if let presentedViewController = viewController?.presentedViewController {
+            return visibleViewController(from: presentedViewController)
+        }
+        return viewController
     }
 }

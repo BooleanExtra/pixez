@@ -8,25 +8,25 @@ on:
 jobs:
   build:
     name: Build Windows
-    runs-on: windows-latest
+    runs-on: windows-2022
     outputs:
       binary-artifact: ${{ steps.binary-artifact.outputs.artifact-url }}
       msix-conclusion: ${{ steps.msix.conclusion }}
       installer-conclusion: ${{ steps.installer.conclusion }}
     steps:
       - name: 签出仓库
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: 初始化 GitVersion
-        uses: gittools/actions/gitversion/setup@v4.2.0
+        uses: gittools/actions/gitversion/setup@v4
         with:
-          versionSpec: '6.4.x'
+          versionSpec: '6.7.x'
 
       - name: 计算版本 Version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v4.2.0
+        uses: gittools/actions/gitversion/execute@v4
         with:
           overrideConfig: |
             assembly-versioning-scheme=MajorMinorPatchTag
@@ -35,9 +35,8 @@ jobs:
       - name: 初始化 Flutter 环境
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version-file: .fvmrc
           cache: true
-          architecture: x64
 
       - name: 初始化 Rust 工具链
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -45,29 +44,34 @@ jobs:
       - name: 还原依赖
         run: flutter pub get --no-example --enforce-lockfile
 
-      - name: 生成代码
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: 生成代码 (rhttp)
+        working-directory: plugins/rhttp/rhttp
+        run: dart run build_runner build
+
+      - name: 生成代码 (PixEz)
+        run: dart run build_runner build
 
       - name: 构建项目
         shell: pwsh
         run: |-
           flutter build windows `
+            --release `
             --no-pub `
             --build-name=${{ steps.gitversion.outputs.majorMinorPatch }} `
             --build-number=${{ steps.gitversion.outputs.buildMetaData }}
 
       - name: 上传产物
         id: binary-artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: binary
+          name: windows-x86_64-release
           path: build/windows/x64/runner/Release/**/*
           compression-level: 9
 
       - name: 还原证书
         id: restore-cert
         shell: pwsh
-        if: env.CERTIFICATE != ''
+        if: env.CERTIFICATE != '' && github.event_name != 'pull_request'
         env:
           CERTIFICATE: ${{ secrets.CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
@@ -93,14 +97,17 @@ jobs:
             --build-windows false `
             --version '${{ steps.gitversion.outputs.assemblySemVer }}' `
             --publisher '${{ steps.restore-cert.outputs.CERTIFICATE_SUBJECT }}'
+          Move-Item `
+            -LiteralPath build/windows/x64/runner/Release/pixez.msix `
+            -Destination build/windows/x64/runner/Release/windows-x86_64-release.msix
 
       - name: 上传 MSIX
         id: msix-artifact
         if: steps.msix.conclusion == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: msix
-          path: build/windows/x64/runner/Release/pixez.msix
+          name: windows-x86_64-release.msix
+          path: build/windows/x64/runner/Release/windows-x86_64-release.msix
           compression-level: 9
 
       - name: 生成 MSIX 安装器
@@ -108,14 +115,15 @@ jobs:
         if: steps.msix.conclusion == 'success'
         uses: frg2089/MsixInstaller@v2
         with:
-          msix: build/windows/x64/runner/Release/pixez.msix
+          msix: build/windows/x64/runner/Release/windows-x86_64-release.msix
+          name: windows-x86_64-release.msix
 
       - name: 上传 MSIX 安装器
         id: installer-artifact
         if: steps.installer.conclusion == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: installer
+          name: windows-x86_64-release.msix.exe
           path: ${{ steps.installer.outputs.path }}
           compression-level: 9
 
@@ -154,28 +162,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 签出仓库
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
+      - name: Download Loose Artifact
+        if: needs.build.outputs.msix-conclusion == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-x86_64-release
+          path: artifacts
+          skip-decompress: true
+          
       - name: Download a Msix Artifact
         if: needs.build.outputs.msix-conclusion == 'success'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
-          name: msix
+          name: windows-x86_64-release.msix
           path: artifacts
 
       - name: Download a Msix Installer Artifact
         if: needs.build.outputs.installer-conclusion == 'success'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
-          name: installer
+          name: windows-x86_64-release.msix.exe
           path: artifacts
 
-      - shell: pwsh
-        run: |-
-          Move-Item -LiteralPath artifacts/pixez.msix -Destination artifacts/pixez.windows-amd64.msix
-          Move-Item -LiteralPath artifacts/MsixInstaller.exe -Destination artifacts/pixez.windows-amd64.exe
-
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/*

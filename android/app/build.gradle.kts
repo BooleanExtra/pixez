@@ -18,7 +18,6 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -55,7 +54,9 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
-val packageName = if (dartEnvironmentVariables["IS_GOOGLEPLAY"] as Boolean) {
+val isGooglePlay = dartEnvironmentVariables["IS_GOOGLEPLAY"] as Boolean
+
+val packageName = if (isGooglePlay) {
     "com.perol.play.pixez"
 } else {
     "com.perol.pixez"
@@ -63,29 +64,36 @@ val packageName = if (dartEnvironmentVariables["IS_GOOGLEPLAY"] as Boolean) {
 
 android {
     namespace = "com.perol.pixez"
-    compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    compileSdk = 37
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+    buildFeatures {
+        buildConfig = true
     }
-
 
     defaultConfig {
         applicationId = packageName
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
-        versionCode = 10009860
-        versionName = "0.9.86 lea"
+        targetSdk = 37
+        versionCode = 10010080
+        versionName = "0.9.108 strip"
+        buildConfigField("boolean", "IS_GOOGLEPLAY", isGooglePlay.toString())
         ndk {
             abiFilters.addAll(arrayOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     splits {
         abi {
             val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
@@ -96,8 +104,8 @@ android {
         }
     }
 
-    signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+    if (keystorePropertiesFile.exists()) {
+        signingConfigs {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
@@ -108,13 +116,29 @@ android {
     }
 
     buildTypes {
-        getByName("release") {
-            if (keystorePropertiesFile.exists()) {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+
+        if (keystorePropertiesFile.exists()) {
+            getByName("release") {
                 signingConfig = signingConfigs.getByName("release")
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
             }
         }
+    }
+
+    if (isGooglePlay) {
+        sourceSets {
+            getByName("release") {
+                manifest.srcFile("src/googlePlayRelease/AndroidManifest.xml")
+            }
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

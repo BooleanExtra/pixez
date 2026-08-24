@@ -1,5 +1,5 @@
 import 'package:bot_toast/bot_toast.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:pixez/custom_tab_plugin.dart';
 import 'package:pixez/er/leader.dart';
@@ -34,7 +34,7 @@ class _WebViewPageState extends State<WebViewPage> {
           onPageStarted: (String url) {},
           onPageFinished: (String url) async {
             final uri = Uri.parse(url);
-            if (!userSetting.disableBypassSni &&
+            if (userSetting.oauthNetworkMode.usesCompatibleConnection &&
                 uri.host == "accounts.pixiv.net") {
               _webViewController.runJavaScript("""
 javascript:(function() {

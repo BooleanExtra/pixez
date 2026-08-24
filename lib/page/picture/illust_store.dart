@@ -19,10 +19,12 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:mobx/mobx.dart';
 import 'package:pixez/models/error_message.dart';
+import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/illust_series_detail.dart';
 import 'package:pixez/network/api_client.dart';
 import 'package:pixez/page/history/history_store.dart';
+import 'package:pixez/utils/haptic_util.dart';
 
 part 'illust_store.g.dart';
 
@@ -111,12 +113,23 @@ abstract class _IllustStoreBase with Store {
   @action
   Future<bool> followAfterStar() async {
     try {
-      if (!illusts!.user.isFollowed!) {
+      if (!(illusts!.user.isFollowed ?? false)) {
         await apiClient.postFollowUser(illusts!.user.id, "public");
         return illusts!.user.isFollowed = true;
       }
     } catch (e) {}
     return false;
+  }
+
+  List<String>? _autoTagsWhenStar() {
+    if (!userSetting.autoTagWhenStar || illusts == null) {
+      return null;
+    }
+    final filters = [RegExp(r"\d+users入り")];
+    return illusts!.tags
+        .map((tag) => tag.name)
+        .where((tag) => !filters.any((regex) => regex.hasMatch(tag)))
+        .toList();
   }
 
   @action
@@ -127,10 +140,12 @@ abstract class _IllustStoreBase with Store {
     state = 1;
     if (force || !illusts!.isBookmarked) {
       try {
-        await apiClient.postLikeIllust(illusts!.id, restrict, tags);
+        await apiClient.postLikeIllust(
+            illusts!.id, restrict, tags ?? _autoTagsWhenStar());
         illusts!.isBookmarked = true;
         isBookmark = true;
         state = 2;
+        HapticUtil.medium();
         return true;
       } catch (e) {}
     } else {
@@ -139,6 +154,7 @@ abstract class _IllustStoreBase with Store {
         illusts!.isBookmarked = false;
         isBookmark = false;
         state = 0;
+        HapticUtil.light();
         return false;
       } catch (e) {}
     }

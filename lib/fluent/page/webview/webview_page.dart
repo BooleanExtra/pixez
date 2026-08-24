@@ -32,7 +32,7 @@ class _WebViewPageState extends State<WebViewPage> {
           onPageStarted: (String url) {},
           onPageFinished: (String url) async {
             final uri = Uri.parse(url);
-            if (!userSetting.disableBypassSni &&
+            if (userSetting.oauthNetworkMode.usesCompatibleConnection &&
                 uri.host == "accounts.pixiv.net") {
               _webViewController.runJavaScript("""
 javascript:(function() {
@@ -78,7 +78,7 @@ javascript:(function() {
       header: Row(
         children: [
           IconButton(
-            icon: Icon(FluentIcons.open_in_new_window),
+            icon: Icon(WindowsIcons.open_in_new_window),
             onPressed: () {
               try {
                 CustomTabPlugin.launch(widget.url);

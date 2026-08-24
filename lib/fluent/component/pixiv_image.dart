@@ -14,7 +14,7 @@
  *
  */
 
-import 'dart:io';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -22,7 +22,9 @@ import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_cache_manager_dio/flutter_cache_manager_dio.dart';
 import 'package:pixez/er/hoster.dart';
+import 'package:pixez/er/pixiv_image_source.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/network/pixez_network_settings.dart';
 import 'package:rhttp/rhttp.dart' as r;
 
 const ImageHost = "i.pximg.net";
@@ -45,40 +47,44 @@ class PixivImage extends StatefulWidget {
   final double? width;
   final String? host;
 
-  PixivImage(this.url,
-      {this.placeWidget,
-      this.fade = true,
-      this.fit,
-      this.enableMemoryCache,
-      this.height,
-      this.host,
-      this.width});
+  PixivImage(
+    this.url, {
+    this.placeWidget,
+    this.fade = true,
+    this.fit,
+    this.enableMemoryCache,
+    this.height,
+    this.host,
+    this.width,
+  });
 
   @override
   _PixivImageState createState() => _PixivImageState();
 
+  static Dio? _cacheDio;
+
   static Future<void> generatePixivCache() async {
-    final dio = Dio();
     final client = await r.RhttpCompatibleClient.createSync(
-        settings: (userSetting.disableBypassSni)
-            ? null
-            : r.ClientSettings(
-                tlsSettings: r.TlsSettings(
-                    verifyCertificates: false, sni: false),
-                dnsSettings: r.DnsSettings.dynamic(
-                  resolver: (host) async {
-                    if (host == 'i.pximg.net') {
-                      return [Hoster.iPximgNet()];
-                    }
-                    if (host == 's.pximg.net') {
-                      return [Hoster.sPximgNet()];
-                    }
-                    return await InternetAddress.lookup(host)
-                        .then((value) => value.map((e) => e.address).toList());
-                  },
-                )));
+      settings: PixezNetworkSettings.forImages(
+        userSetting.pictureSource,
+        userSetting.networkMode,
+      ),
+    );
+    final existing = _cacheDio;
+    if (existing != null) {
+      existing.httpClientAdapter = ConversionLayerAdapter(client);
+      return;
+    }
+    final dio = Dio();
+    dio.interceptors.add(
+      PixivImageSourceInterceptor(
+        networkMode: () => userSetting.networkMode,
+        pictureSource: () => userSetting.pictureSource,
+      ),
+    );
     dio.interceptors.add(LogInterceptor(responseBody: false));
     dio.httpClientAdapter = ConversionLayerAdapter(client);
+    _cacheDio = dio;
     DioCacheManager.initialize(dio);
   }
 }
@@ -119,37 +125,71 @@ class _PixivImageState extends State<PixivImage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = min(min(width ?? 60, height ?? 60), 60.0);
     return CachedNetworkImage(
-        placeholder: (context, url) =>
-            widget.placeWidget ?? Container(height: height),
-        errorWidget: (context, url, _) => Container(
+      placeholder: widget.placeWidget == null
+          ? null
+          : (context, url) =>
+                widget.placeWidget ??
+                Container(
+                  height: height,
+                  child: Center(
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: const Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: const ProgressRing(),
+                      ),
+                    ),
+                  ),
+                ),
+      progressIndicatorBuilder: widget.placeWidget == null
+          ? (context, url, progress) => Container(
               height: height,
               child: Center(
-                child: HyperlinkButton(
-                  onPressed: () {
-                    setState(() {});
-                  },
-                  child: Text(":("),
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ProgressRing(value: progress.progress),
+                  ),
                 ),
               ),
-            ),
-        fadeOutDuration:
-            widget.fade ? const Duration(milliseconds: 1000) : null,
-        // memCacheWidth: width?.toInt(),
-        // memCacheHeight: height?.toInt(),
-        imageUrl: url,
-        cacheManager: pixivCacheManager,
+            )
+          : null,
+      errorWidget: (context, url, _) => Container(
         height: height,
-        width: width,
-        fit: fit ?? BoxFit.fitWidth,
-        httpHeaders: Hoster.header(url: url));
+        child: Center(
+          child: HyperlinkButton(
+            onPressed: () {
+              setState(() {});
+            },
+            child: Text(":("),
+          ),
+        ),
+      ),
+      fadeOutDuration: widget.fade ? const Duration(milliseconds: 1000) : null,
+      // memCacheWidth: width?.toInt(),
+      // memCacheHeight: height?.toInt(),
+      imageUrl: url,
+      cacheManager: pixivCacheManager,
+      height: height,
+      width: width,
+      fit: fit ?? BoxFit.fitWidth,
+      httpHeaders: Hoster.header(url: url),
+    );
   }
 }
 
 class PixivProvider {
   static ImageProvider url(String url, {String? preUrl}) {
-    return CachedNetworkImageProvider(url,
-        headers: Hoster.header(url: preUrl), cacheManager: pixivCacheManager);
+    return CachedNetworkImageProvider(
+      url,
+      headers: Hoster.header(url: preUrl),
+      cacheManager: pixivCacheManager,
+    );
   }
 }
 

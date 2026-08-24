@@ -16,7 +16,7 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/new_version_chip.dart';
 import 'package:pixez/component/painter_avatar.dart';
@@ -59,35 +59,17 @@ class _SettingPageState extends State<SettingPage> {
     fetchBoard();
   }
 
-  bool hasNewVersion = false;
   bool hideEmail = true;
+
+  bool get _effectiveHasNewVersion =>
+      Updater.result == Result.yes &&
+      Updater.latestVersion != userSetting.ignoreUpdateVersion;
 
   initMethod() async {
     if (Constants.isGooglePlay || Platform.isIOS) return;
-    if (Updater.result != Result.timeout) {
-      bool hasNew = Updater.result == Result.yes;
-      if (mounted)
-        setState(() {
-          hasNewVersion = hasNew;
-        });
-      return;
-    }
-    Result result = await Updater.check();
-    switch (result) {
-      case Result.yes:
-        if (mounted) {
-          setState(() {
-            hasNewVersion = true;
-          });
-        }
-        break;
-      default:
-        if (mounted) {
-          setState(() {
-            hasNewVersion = false;
-          });
-        }
-    }
+    if (Updater.result != Result.timeout) return;
+    await Updater.check();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -285,10 +267,16 @@ class _SettingPageState extends State<SettingPage> {
                       leading: Icon(Icons.message),
                       title: Text(I18n.of(context).about),
                       onTap: () => Leader.push(
-                          context, AboutPage(newVersion: hasNewVersion)),
-                      trailing: Visibility(
-                        child: NewVersionChip(),
-                        visible: hasNewVersion,
+                        context,
+                        AboutPage(newVersion: _effectiveHasNewVersion),
+                      ),
+                      trailing: Observer(
+                        builder: (context) {
+                          return Visibility(
+                            child: NewVersionChip(),
+                            visible: _effectiveHasNewVersion,
+                          );
+                        },
                       ),
                     ),
                     if (_needBoardSection)

@@ -2,10 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pixez/er/hoster.dart';
+import 'package:pixez/er/pixiv_image_source.dart';
 import 'package:pixez/fluent/component/pixiv_image.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/network/api_client.dart';
+import 'package:pixez/network/network_mode.dart';
 
 class NetworkSettingPage extends StatefulWidget {
   @override
@@ -53,13 +55,20 @@ class _NetworkSettingPageState extends State<NetworkSettingPage> {
       String url =
           "https://i.pximg.net/c/360x360_70/img-master/img/2016/04/29/03/33/27/56585648_p0_square1200.jpg";
       var dio = Dio(BaseOptions(headers: Hoster.header(url: url)));
-      String trueUrl = url.replaceFirst(ImageHost, host);
+      String trueUrl = PixivImageSource.resolve(
+        url,
+        networkMode: NetworkMode.compat,
+        pictureSource: host,
+      );
       dio.httpClientAdapter = await ApiClient.createCompatibleClient();
-      await dio
-          .download(trueUrl, (await getTemporaryDirectory()).path + "/s.png",
-              onReceiveProgress: (min, max) {
-        throw ok();
-      }, deleteOnError: true);
+      await dio.download(
+        trueUrl,
+        (await getTemporaryDirectory()).path + "/s.png",
+        onReceiveProgress: (min, max) {
+          throw ok();
+        },
+        deleteOnError: true,
+      );
     } catch (e) {
       if (e is ok) {
         setState(() {
@@ -89,15 +98,14 @@ class _NetworkSettingPageState extends State<NetworkSettingPage> {
             subtitle: Text("Host:" + splashStore.host),
             trailing: _buildCheckIcon(imgStatus),
           ),
-          TextBox(
-            controller: editingController,
-          ),
+          TextBox(controller: editingController),
           HyperlinkButton(
-              onPressed: () {
-                host = editingController.text;
-                _imgCheck();
-              },
-              child: Text("apply")),
+            onPressed: () {
+              host = editingController.text;
+              _imgCheck();
+            },
+            child: Text("apply"),
+          ),
           Text(message),
         ],
       ),

@@ -18,8 +18,8 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:easy_refresh/easy_refresh.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/ban_page.dart';
@@ -45,6 +45,7 @@ import 'package:pixez/page/picture/picture_list_page.dart';
 import 'package:pixez/page/picture/tag_for_illust_page.dart';
 import 'package:pixez/page/picture/ugoira_loader.dart';
 import 'package:pixez/page/picture/user_follow_button.dart';
+import 'package:pixez/utils/haptic_util.dart';
 import 'package:pixez/page/report/report_items_page.dart';
 import 'package:pixez/page/search/result_page.dart';
 import 'package:pixez/page/user/user_store.dart';
@@ -173,6 +174,29 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     }
   }
 
+  Future<void> _autoBookmarkAfterSave(Illusts illust) async {
+    if (!userSetting.starAfterSave) {
+      return;
+    }
+    final targetStore = illust.id == _illustStore.id
+        ? _illustStore
+        : IllustStore(illust.id, illust);
+    if (targetStore.state == 0) {
+      await targetStore.star(
+        restrict: userSetting.defaultPrivateLike ? "private" : "public",
+      );
+      try {
+        final targetIllust = _aboutStore.illusts.firstWhere(
+          (e) => e.id == illust.id,
+        );
+        targetIllust.isBookmarked = true;
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {}
+    }
+  }
+
   @override
   void dispose() {
     _illustStore.dispose();
@@ -210,10 +234,18 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       }
                     },
                   ),
-                  IconButton(
-                    icon: Icon(Icons.more_vert),
-                    onPressed: () {
-                      buildShowModalBottomSheet(context, _illustStore.illusts!);
+                  Builder(
+                    builder: (buttonContext) {
+                      return IconButton(
+                        icon: Icon(Icons.more_vert),
+                        onPressed: () {
+                          HapticUtil.selectionClick();
+                          buildShowModalBottomSheet(
+                            buttonContext,
+                            _illustStore.illusts!,
+                          );
+                        },
+                      );
                     },
                   ),
                 ],
@@ -277,15 +309,15 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       } else {
                         tags = null;
                       }
-                      _illustStore.star(
+                      bool success = await _illustStore.star(
                         restrict: userSetting.defaultPrivateLike
                             ? "private"
                             : "public",
                         tags: tags,
                       );
-                      if (userSetting.followAfterStar) {
-                        bool success = await _illustStore.followAfterStar();
-                        if (success) {
+                      if (success && userSetting.followAfterStar) {
+                        bool followSuccess = await _illustStore.followAfterStar();
+                        if (followSuccess) {
                           userStore?.isFollow = true;
                           BotToast.showText(
                             text:
@@ -455,6 +487,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                   .toList();
               return InkWell(
                 onTap: () {
+                  HapticUtil.selectionClick();
                   Leader.push(
                     context,
                     PictureListPage(
@@ -465,6 +498,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                   );
                 },
                 onLongPress: () async {
+                  HapticUtil.heavy();
                   if (userSetting.longPressSaveConfirm) {
                     final result = await showDialog(
                       context: context,
@@ -493,14 +527,9 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       return;
                     }
                   }
-                  if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-                    _illustStore.star(
-                      restrict: userSetting.defaultPrivateLike
-                          ? "private"
-                          : "public",
-                    );
-                  }
-                  saveStore.saveImage(_aboutStore.illusts[index]);
+                  final illust = _aboutStore.illusts[index];
+                  saveStore.saveImage(illust);
+                  await _autoBookmarkAfterSave(illust);
                 },
                 child: PixivImage(
                   _aboutStore.illusts[index].imageUrls.squareMedium,
@@ -785,6 +814,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         break;
       case 2:
         {
+          HapticUtil.light();
           await Clipboard.setData(ClipboardData(text: f.name));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -799,6 +829,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   Widget buildRow(BuildContext context, Tags f) {
     return GestureDetector(
       onLongPress: () async {
+        HapticUtil.heavy();
         await _longPressTag(context, f);
       },
       onTap: () {
@@ -960,13 +991,10 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   Future<void> _pressSave(Illusts illust, int index) async {
+    HapticUtil.heavy();
     if (userSetting.illustDetailSaveSkipLongPress) {
       saveStore.saveImage(illust, index: index);
-      if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-        _illustStore.star(
-          restrict: userSetting.defaultPrivateLike ? "private" : "public",
-        );
-      }
+      await _autoBookmarkAfterSave(illust);
       return;
     }
     showModalBottomSheet(
@@ -994,13 +1022,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                 onTap: () async {
                   Navigator.of(context).pop();
                   saveStore.saveImage(illust, index: index);
-                  if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-                    _illustStore.star(
-                      restrict: userSetting.defaultPrivateLike
-                          ? "private"
-                          : "public",
-                    );
-                  }
+                  await _autoBookmarkAfterSave(illust);
                 },
                 onLongPress: () async {
                   Navigator.of(context).pop();
@@ -1123,15 +1145,18 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                     ListTile(
                       leading: Icon(Icons.save),
                       title: Text(I18n.of(context).save),
-                      onTap: () {
+                      onTap: () async {
                         Navigator.of(context).pop("OK");
                         if (userSetting.starAfterSave &&
                             (_illustStore.state == 0)) {
-                          _illustStore.star(
+                          bool success = await _illustStore.star(
                             restrict: userSetting.defaultPrivateLike
                                 ? "private"
                                 : "public",
                           );
+                          if (success && userSetting.followAfterStar) {
+                            await _illustStore.followAfterStar();
+                          }
                         }
                       },
                     ),
@@ -1152,151 +1177,171 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   Future buildShowModalBottomSheet(BuildContext context, Illusts illusts) {
-    return showModalBottomSheet(
-      isScrollControlled: true,
+    final buttonBox = context.findRenderObject() as RenderBox?;
+    final shareOrigin = buttonBox != null
+        ? buttonBox.localToGlobal(Offset.zero) & buttonBox.size
+        : null;
+    return showGeneralDialog(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(8.0),
-              topRight: Radius.circular(8.0),
-            ),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: <Widget>[
-                    _buildNameAvatar(context, illusts),
-                    if (illusts.metaPages.isNotEmpty)
-                      ListTile(
-                        title: Text(I18n.of(context).muti_choice_save),
-                        leading: Icon(Icons.save),
-                        onTap: () async {
-                          Navigator.of(context).pop();
-                          _showMutiChoiceDialog(illusts, context);
-                        },
-                      ),
-                    ListTile(
-                      title: Text(I18n.of(context).copymessage),
-                      leading: Icon(Icons.local_library),
-                      onTap: () async {
-                        final str = userSetting.illustToShareInfoText(illusts);
-                        await Clipboard.setData(ClipboardData(text: str));
-                        BotToast.showText(
-                          text: I18n.of(context).copied_to_clipboard,
-                        );
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    Builder(
-                      builder: (context) {
-                        return ListTile(
-                          title: Text(I18n.of(context).share),
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final width =
+            (MediaQuery.sizeOf(dialogContext).width - 24).clamp(0.0, 320.0);
+        return SafeArea(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, right: 12, left: 12),
+              child: Material(
+                color: Theme.of(dialogContext).colorScheme.surface,
+                elevation: 8,
+                shadowColor: Colors.black26,
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: width,
+                    maxHeight: MediaQuery.sizeOf(dialogContext).height * 0.75,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        SizedBox(height: 8),
+                        _buildNameAvatar(dialogContext, illusts),
+                        if (illusts.metaPages.isNotEmpty)
+                          ListTile(
+                            title: Text(I18n.of(dialogContext).muti_choice_save),
+                            leading: Icon(Icons.save),
+                            onTap: () async {
+                              Navigator.of(dialogContext).pop();
+                              _showMutiChoiceDialog(illusts, context);
+                            },
+                          ),
+                        ListTile(
+                          title: Text(I18n.of(dialogContext).copymessage),
+                          leading: Icon(Icons.local_library),
+                          onTap: () async {
+                            final str =
+                                userSetting.illustToShareInfoText(illusts);
+                            await Clipboard.setData(ClipboardData(text: str));
+                            BotToast.showText(
+                              text: I18n.of(dialogContext).copied_to_clipboard,
+                            );
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                        ListTile(
+                          title: Text(I18n.of(dialogContext).share),
                           leading: Icon(Icons.share),
                           onTap: () {
-                            final box =
-                                context.findRenderObject() as RenderBox?;
-                            final pos = box != null
-                                ? box.localToGlobal(Offset.zero) & box.size
-                                : null;
-                            Navigator.of(context).pop();
+                            Navigator.of(dialogContext).pop();
                             SharePlus.instance.share(
                               ShareParams(
                                 text:
                                     "https://www.pixiv.net/artworks/${widget.id}",
-                                sharePositionOrigin: pos,
+                                sharePositionOrigin: shareOrigin,
                               ),
                             );
                           },
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.link),
-                      title: Text(I18n.of(context).link),
-                      onTap: () async {
-                        await Clipboard.setData(
-                          ClipboardData(
-                            text: "https://www.pixiv.net/artworks/${widget.id}",
-                          ),
-                        );
-                        BotToast.showText(
-                          text: I18n.of(context).copied_to_clipboard,
-                        );
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    ListTile(
-                      title: Text(I18n.of(context).ban),
-                      leading: Icon(Icons.brightness_auto),
-                      onTap: () {
-                        muteStore.insertBanIllusts(
-                          BanIllustIdPersist(
-                            illustId: widget.id.toString(),
-                            name: illusts.title,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      title: Text(I18n.of(context).report),
-                      leading: Icon(Icons.report),
-                      onTap: () async {
-                        if (Platform.isAndroid) {
-                          Navigator.of(context).pop();
-                          await Reporter.show(
-                            context,
-                            () async => await muteStore.insertBanIllusts(
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.link),
+                          title: Text(I18n.of(dialogContext).link),
+                          onTap: () async {
+                            await Clipboard.setData(
+                              ClipboardData(
+                                text:
+                                    "https://www.pixiv.net/artworks/${widget.id}",
+                              ),
+                            );
+                            BotToast.showText(
+                              text: I18n.of(dialogContext).copied_to_clipboard,
+                            );
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                        ListTile(
+                          title: Text(I18n.of(dialogContext).ban),
+                          leading: Icon(Icons.brightness_auto),
+                          onTap: () {
+                            muteStore.insertBanIllusts(
                               BanIllustIdPersist(
                                 illustId: widget.id.toString(),
                                 name: illusts.title,
                               ),
-                            ),
-                          );
-                        } else {
-                          await showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title: Text(I18n.of(context).report),
-                                content: Text(I18n.of(context).report_message),
-                                actions: <Widget>[
-                                  TextButton(
-                                    child: Text(I18n.of(context).cancel),
-                                    onPressed: () {
-                                      Navigator.of(context).pop("CANCEL");
-                                    },
+                            );
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                        ListTile(
+                          title: Text(I18n.of(dialogContext).report),
+                          leading: Icon(Icons.report),
+                          onTap: () async {
+                            if (Platform.isAndroid) {
+                              Navigator.of(dialogContext).pop();
+                              await Reporter.show(
+                                context,
+                                () async => await muteStore.insertBanIllusts(
+                                  BanIllustIdPersist(
+                                    illustId: widget.id.toString(),
+                                    name: illusts.title,
                                   ),
-                                  TextButton(
-                                    child: Text(I18n.of(context).ok),
-                                    onPressed: () {
-                                      Navigator.of(context).pop("OK");
-                                    },
-                                  ),
-                                ],
+                                ),
                               );
-                            },
-                          );
-                        }
-                      },
+                            } else {
+                              await showDialog(
+                                context: dialogContext,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: Text(I18n.of(context).report),
+                                    content:
+                                        Text(I18n.of(context).report_message),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        child: Text(I18n.of(context).cancel),
+                                        onPressed: () {
+                                          Navigator.of(context).pop("CANCEL");
+                                        },
+                                      ),
+                                      TextButton(
+                                        child: Text(I18n.of(context).ok),
+                                        onPressed: () {
+                                          Navigator.of(context).pop("OK");
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+                          },
+                        ),
+                        SizedBox(height: 8),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                Container(height: MediaQuery.of(context).padding.bottom),
-              ],
+              ),
             ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+            alignment: Alignment.topRight,
+            child: child,
           ),
         );
       },
@@ -1304,6 +1349,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   Future<void> _showBookMarkTag() async {
+    HapticUtil.heavy();
     final result = await Leader.pushWithScaffold(
       context,
       TagForIllustPage(id: widget.id),
@@ -1315,7 +1361,10 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
       if (userSetting.saveAfterStar && (_illustStore.state == 0)) {
         saveStore.saveImage(_illustStore.illusts!);
       }
-      _illustStore.star(restrict: restrict, tags: tags, force: true);
+      bool success = await _illustStore.star(restrict: restrict, tags: tags, force: true);
+      if (success && userSetting.followAfterStar) {
+        await _illustStore.followAfterStar();
+      }
     }
   }
 

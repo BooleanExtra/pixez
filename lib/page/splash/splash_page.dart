@@ -14,7 +14,7 @@
  *
  */
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mobx/mobx.dart';
 import 'package:pixez/er/leader.dart';
@@ -53,10 +53,10 @@ class _SplashPageState extends State<SplashPage>
   bool isPush = false;
 
   initMethod() {
-    if (!userSetting.disableBypassSni) {
+    if (userSetting.needsCompatibleDnsFetch) {
       //ugly,consider refactor with other state management
-      userDisposer = reaction((_) => userSetting.disableBypassSni, (_) {
-        if (userSetting.disableBypassSni) {
+      userDisposer = reaction((_) => userSetting.needsCompatibleDnsFetch, (_) {
+        if (!userSetting.needsCompatibleDnsFetch) {
           apiClient.httpClient.options.baseUrl =
               'https://${ApiClient.BASE_API_URL_HOST}';
           oAuthClient.httpClient.options.baseUrl =
@@ -97,8 +97,9 @@ class _SplashPageState extends State<SplashPage>
     final brightness =
         SchedulerBinding.instance.platformDispatcher.platformBrightness;
     return Scaffold(
-      backgroundColor:
-          brightness == Brightness.dark ? Colors.black : Colors.white,
+      backgroundColor: brightness == Brightness.dark
+          ? Colors.black
+          : Colors.white,
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,

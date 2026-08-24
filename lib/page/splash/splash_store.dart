@@ -43,7 +43,7 @@ abstract class _SplashStoreBase with Store {
   }
 
   maybeFetch() async {
-    if (userSetting.disableBypassSni || helloWord == OK_TEXT) return;
+    if (!userSetting.needsCompatibleDnsFetch || helloWord == OK_TEXT) return;
     fetch();
   }
 
@@ -51,7 +51,9 @@ abstract class _SplashStoreBase with Store {
   fetch() async {
     if (helloWord == OK_TEXT ||
         host != ImageHost ||
-        userSetting.pictureSource != ImageHost) return;
+        !userSetting.needsCompatibleDnsFetch ||
+        userSetting.pictureSource != ImageHost)
+      return;
     try {
       await Hoster.dnsQueryAll();
     } catch (e) {}

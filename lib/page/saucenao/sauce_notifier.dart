@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:html/parser.dart' show parse;
@@ -18,7 +18,6 @@ import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/er/prefer.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/network/api_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -27,18 +26,14 @@ part 'sauce_notifier.g.dart';
 
 @freezed
 abstract class SauceState with _$SauceState {
-  const factory SauceState({
-    required bool notStart,
-  }) = _SauceState;
+  const factory SauceState({required bool notStart}) = _SauceState;
 }
 
 @riverpod
 class Sauce extends _$Sauce {
-  static String host = "saucenao.com";
   Dio dio = Dio(
     BaseOptions(
       baseUrl: "https://saucenao.com",
-      headers: {HttpHeaders.hostHeader: host},
     ),
   );
   List<int> results = [];
@@ -144,11 +139,6 @@ class Sauce extends _$Sauce {
     ]);
     try {
       BotToast.showText(text: I18n.ofContext().uploading);
-      if (userSetting.disableBypassSni) {
-        dio.options.baseUrl = "https://$host";
-      } else {
-        dio.httpClientAdapter = await ApiClient.createCompatibleClient();
-      }
       Response response = await dio.post('/search.php', data: formData);
       BotToast.showText(text: I18n.ofContext().parsing);
       var document = parse(response.data);

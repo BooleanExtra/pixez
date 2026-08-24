@@ -19,7 +19,7 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -372,7 +372,7 @@ class _AboutPageState extends State<AboutPage> {
               },
             ),
             ListTile(
-              leading: Icon(FontAwesomeIcons.telegram),
+              leading: FaIcon(FontAwesomeIcons.telegram),
               title: Text("Group"),
               subtitle: Text('t.me/PixEzChannel'),
             ),
@@ -461,7 +461,7 @@ class _AboutPageState extends State<AboutPage> {
                   margin: EdgeInsets.all(8.0),
                   elevation: 1.0,
                   child: ListTile(
-                    leading: Icon(FontAwesomeIcons.mugSaucer),
+                    leading: FaIcon(FontAwesomeIcons.mugSaucer),
                     title: Text(i.description),
                     subtitle: Text(i.price),
                     onTap: () {

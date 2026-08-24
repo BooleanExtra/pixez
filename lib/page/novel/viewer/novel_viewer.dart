@@ -18,7 +18,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
@@ -659,14 +659,24 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
                   _showSettings(context);
                 },
               ),
-              ListTile(
-                title: Text(I18n.of(context).share),
-                leading: Icon(Icons.share),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  final link =
-                      "https://www.pixiv.net/novel/show.php?id=${widget.id}";
-                  SharePlus.instance.share(ShareParams(text: link));
+              Builder(
+                builder: (context) {
+                  return ListTile(
+                    title: Text(I18n.of(context).share),
+                    leading: Icon(Icons.share),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      final box = context.findRenderObject() as RenderBox?;
+                      final pos = box != null
+                          ? box.localToGlobal(Offset.zero) & box.size
+                          : null;
+                      final link =
+                          "https://www.pixiv.net/novel/show.php?id=${widget.id}";
+                      SharePlus.instance.share(
+                        ShareParams(text: link, sharePositionOrigin: pos),
+                      );
+                    },
+                  );
                 },
               ),
             ],
@@ -679,17 +689,24 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
   Widget buildListTile(PrevNovel? series) {
     if (series == null) return ListTile(title: Text("no more"));
     return ListTile(
-      title: Text(series.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-      onTap: () {
-        Navigator.of(context, rootNavigator: true).pushReplacement(
-          MaterialPageRoute(
-            builder: (BuildContext context) => NovelViewerPage(
-              id: series.id,
-              novelStore: NovelStore(series.id, null),
-            ),
-          ),
-        );
-      },
+      title: Text(
+        series.title ?? series.contentOrder,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      enabled: series.viewable,
+      onTap: series.viewable
+          ? () {
+              Navigator.of(context, rootNavigator: true).pushReplacement(
+                MaterialPageRoute(
+                  builder: (BuildContext context) => NovelViewerPage(
+                    id: series.id,
+                    novelStore: NovelStore(series.id, null),
+                  ),
+                ),
+              );
+            }
+          : null,
     );
   }
 

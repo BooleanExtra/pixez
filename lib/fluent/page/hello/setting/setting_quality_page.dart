@@ -18,10 +18,12 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/material.dart' show Icons;
+import 'package:material_ui/material_ui.dart' show Icons;
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/fluent/component/pixez_button.dart';
+import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
+import 'package:pixez/er/updater.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/page/about/languages.dart';
@@ -29,6 +31,7 @@ import 'package:pixez/fluent/page/hello/setting/copy_text_page.dart';
 import 'package:pixez/fluent/page/hello/setting/setting_cross_adapter_page.dart';
 import 'package:pixez/fluent/page/network/network_page.dart';
 import 'package:pixez/fluent/page/platform/platform_page.dart';
+import 'package:pixez/store/welcome_page_type.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingQualityPage extends StatefulWidget {
@@ -46,6 +49,26 @@ class _SettingQualityPageState extends State<SettingQualityPage>
     super.initState();
   }
 
+  String _welcomePageLabel(BuildContext context, WelcomePageType type) {
+    switch (type) {
+      case WelcomePageType.home:
+        return I18n.of(context).home;
+      case WelcomePageType.rank:
+        return I18n.of(context).rank;
+      case WelcomePageType.quickView:
+        return I18n.of(context).quick_view;
+      case WelcomePageType.search:
+        return I18n.of(context).search;
+      case WelcomePageType.setting:
+        return I18n.of(context).setting;
+      case WelcomePageType.news:
+        return I18n.of(context).news;
+      case WelcomePageType.bookmark:
+        return I18n.of(context).bookmark;
+      case WelcomePageType.followed:
+        return I18n.of(context).followed;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,13 +108,14 @@ class _SettingQualityPageState extends State<SettingQualityPage>
           ListTile(
             leading: const Icon(FluentIcons.info),
             title: Text(I18n.of(context).share_info_format),
-            trailing: const Icon(FluentIcons.chevron_right),
-            onPressed: () => Leader.push(
-              context,
-              CopyTextPage(),
-              icon: Icon(FluentIcons.info),
-              title: Text(I18n.of(context).share_info_format),
-            ),
+            trailing: const Icon(WindowsIcons.open_in_new_window),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => CopyTextPage(),
+                useRootNavigator: false,
+              );
+            },
           ),
           ListTile(
             leading: const Icon(FluentIcons.translate),
@@ -210,23 +234,19 @@ class _SettingQualityPageState extends State<SettingQualityPage>
             title: Text(I18n.of(context).welcome_page),
             trailing: Observer(
               builder: (_) {
-                final tablist = {
-                  0: I18n.of(context).home,
-                  1: I18n.of(context).rank,
-                  3: I18n.of(context).news,
-                  4: I18n.of(context).bookmark,
-                  5: I18n.of(context).followed,
-                  6: I18n.of(context).setting,
-                };
-                return ComboBox<int>(
-                  value: userSetting.welcomePageNum,
-                  items: tablist.entries
+                final tabs = userSetting.fluentWelcomePages;
+                return ComboBox<WelcomePageType>(
+                  value: userSetting.fluentWelcomePageType,
+                  items: tabs
                       .map(
-                        (i) => ComboBoxItem(child: Text(i.value), value: i.key),
+                        (type) => ComboBoxItem(
+                          value: type,
+                          child: Text(_welcomePageLabel(context, type)),
+                        ),
                       )
                       .toList(),
-                  onChanged: (index) async {
-                    await userSetting.setWelcomePageNum(index!);
+                  onChanged: (type) async {
+                    await userSetting.setFluentWelcomePageType(type!);
                   },
                 );
               },
@@ -400,6 +420,30 @@ class _SettingQualityPageState extends State<SettingQualityPage>
               },
             ),
           ),
+          if (!Constants.isGooglePlay && !Platform.isIOS)
+            ListTile(
+              title: Text(I18n.of(context).ignore_current_version_update),
+              trailing: ToggleSwitch(
+                checked: Updater.result == Result.yes &&
+                    Updater.latestVersion != null &&
+                    userSetting.ignoreUpdateVersion == Updater.latestVersion,
+                onChanged: (value) async {
+                  if (value) {
+                    if (Updater.latestVersion == null) {
+                      await Updater.check();
+                    }
+                    if (Updater.result == Result.yes &&
+                        Updater.latestVersion != null) {
+                      await userSetting.setIgnoreUpdateVersion(
+                        Updater.latestVersion,
+                      );
+                    }
+                  } else {
+                    await userSetting.setIgnoreUpdateVersion(null);
+                  }
+                },
+              ),
+            ),
           Divider(),
           ListTile(
             title: Text(I18n.of(context).follow_after_star),
@@ -442,9 +486,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
             ),
           ),
           ListTile(
-            title: Text(
-              I18n.of(context).automatically_tag_when_bookmarking,
-            ),
+            title: Text(I18n.of(context).automatically_tag_when_bookmarking),
             trailing: ToggleSwitch(
               checked: userSetting.autoTagWhenStar,
               onChanged: (value) async {

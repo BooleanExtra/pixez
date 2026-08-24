@@ -17,7 +17,7 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/constants.dart';
@@ -33,6 +33,7 @@ import 'package:pixez/page/hello/recom/recom_spotlight_page.dart';
 import 'package:pixez/page/hello/setting/setting_page.dart';
 import 'package:pixez/page/preview/preview_page.dart';
 import 'package:pixez/page/search/search_page.dart';
+import 'package:pixez/utils/haptic_util.dart';
 
 class HelloPage extends StatefulWidget {
   @override
@@ -83,8 +84,10 @@ class _HelloPageState extends State<HelloPage> {
     ];
     Constants.type = 0;
     fetcher.context = context;
-    index = userSetting.welcomePageNum;
-    _pageController = PageController(initialPage: userSetting.welcomePageNum);
+    index = userSetting.materialWelcomePageIndex;
+    _pageController = PageController(
+      initialPage: userSetting.materialWelcomePageIndex,
+    );
     super.initState();
     saveStore.ctx = this.context;
     saveStore.saveStream.listen((stream) {
@@ -132,24 +135,21 @@ class _HelloPageState extends State<HelloPage> {
             ],
           ),
           extendBody: true,
-          bottomNavigationBar:
-              wide
-                  ? null
-                  : Observer(
-                    builder: (context) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 400),
-                        transform: Matrix4.translationValues(
-                          0,
-                          fullScreenStore.fullscreen
-                              ? bottomNavigatorHeight!
-                              : 0,
-                          0,
-                        ),
-                        child: _buildNavigationBar(context),
-                      );
-                    },
-                  ),
+          bottomNavigationBar: wide
+              ? null
+              : Observer(
+                  builder: (context) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 400),
+                      transform: Matrix4.translationValues(
+                        0,
+                        fullScreenStore.fullscreen ? bottomNavigatorHeight! : 0,
+                        0,
+                      ),
+                      child: _buildNavigationBar(context),
+                    );
+                  },
+                ),
         );
       },
     );
@@ -163,9 +163,13 @@ class _HelloPageState extends State<HelloPage> {
             selectedIndex: index,
             labelType: NavigationRailLabelType.all,
             onDestinationSelected: (int index) {
+              HapticUtil.selectionClick();
+              if (this.index == index) {
+                topStore.setTop("${index + 1}00");
+              }
               _pageController.jumpToPage(index);
               setState(() {
-                index = index;
+                this.index = index;
               });
             },
             destinations: <NavigationRailDestination>[
@@ -211,13 +215,12 @@ class _HelloPageState extends State<HelloPage> {
                 child: SizedBox(
                   width: 40,
                   height: 40,
-                  child:
-                      accountStore.now != null
-                          ? PainterAvatar(
-                            url: accountStore.now!.userImage,
-                            id: int.tryParse(accountStore.now!.userId) ?? 0,
-                          )
-                          : Container(),
+                  child: accountStore.now != null
+                      ? PainterAvatar(
+                          url: accountStore.now!.userImage,
+                          id: int.tryParse(accountStore.now!.userId) ?? 0,
+                        )
+                      : Container(),
                 ),
               ),
             ),
@@ -261,13 +264,14 @@ class _HelloPageState extends State<HelloPage> {
           ],
           selectedIndex: index,
           onDestinationSelected: (value) {
-            if (this.index == index) {
-              topStore.setTop("${index + 1}00");
+            HapticUtil.selectionClick();
+            if (this.index == value) {
+              topStore.setTop("${value + 1}00");
             }
             setState(() {
               this.index = value;
             });
-            if (_pageController.hasClients) _pageController.jumpToPage(index);
+            if (_pageController.hasClients) _pageController.jumpToPage(value);
           },
         ),
       ),

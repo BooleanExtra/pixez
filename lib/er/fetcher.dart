@@ -19,7 +19,7 @@ import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_cache_manager_dio/flutter_cache_manager_dio.dart';
@@ -27,16 +27,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
 import 'package:pixez/er/lprinter.dart';
+import 'package:pixez/er/pixiv_image_source.dart';
 import 'package:pixez/er/toaster.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/task_persist.dart';
+import 'package:pixez/network/network_mode.dart';
+import 'package:pixez/network/pixez_network_settings.dart';
 import 'package:pixez/store/save_store.dart';
+import 'package:pixez/utils/haptic_util.dart';
 import 'package:quiver/collection.dart';
 import 'package:rhttp/rhttp.dart' as r;
 
-enum IsoTaskState { INIT, APPEND, PROGRESS, ERROR, COMPLETE }
+enum IsoTaskState { INIT, APPEND, PROGRESS, ERROR, COMPLETE, RELOAD }
 
 class IsoContactBean {
   final IsoTaskState state;
@@ -59,17 +63,24 @@ class TaskBean {
   String? savePath;
   String? source;
   String? host;
-  bool? byPass;
+  NetworkMode? networkMode;
 
   TaskBean({
     required this.url,
     required this.illusts,
     required this.fileName,
     required this.savePath,
-    this.byPass,
+    this.networkMode,
     this.host,
     this.source,
   });
+}
+
+class NetworkReloadMessage {
+  final NetworkMode networkMode;
+  final String? source;
+
+  NetworkReloadMessage({required this.networkMode, required this.source});
 }
 
 class Fetcher {
@@ -147,7 +158,7 @@ class Fetcher {
       SendMessage(
         receivePort.sendPort,
         pictureSource,
-        userSetting.disableBypassSni,
+        userSetting.networkMode,
         RootIsolateToken.instance!,
       ),
       debugName: 'childIsolate',
@@ -160,7 +171,7 @@ class Fetcher {
       url: url,
       illusts: illusts,
       fileName: fileName,
-      byPass: userSetting.disableBypassSni,
+      networkMode: userSetting.networkMode,
       source: userSetting.pictureSource,
       host: splashStore.host,
       savePath: (await getTemporaryDirectory()).path,
@@ -181,7 +192,7 @@ class Fetcher {
         }
       }
       if (first == null) return;
-      first.byPass = userSetting.disableBypassSni;
+      first.networkMode = userSetting.networkMode;
       first.source = userSetting.pictureSource;
       first.host = splashStore.host;
       IsoContactBean isoContactBean = IsoContactBean(
@@ -195,6 +206,18 @@ class Fetcher {
 
   void stop() {
     isolate?.kill(priority: Isolate.immediate);
+  }
+
+  void reloadNetwork() {
+    sendPortToChild?.send(
+      IsoContactBean(
+        state: IsoTaskState.RELOAD,
+        data: NetworkReloadMessage(
+          networkMode: userSetting.networkMode,
+          source: userSetting.pictureSource,
+        ),
+      ),
+    );
   }
 
   Future<void> _complete(
@@ -225,6 +248,7 @@ class Fetcher {
     var taskPersist = await taskPersistProvider.getAccount(url);
     if (taskPersist == null) return;
     await taskPersistProvider.update(taskPersist..status = 3);
+    HapticUtil.error();
     var job = jobMaps[url];
     if (job != null) {
       job.status = 3;
@@ -240,47 +264,40 @@ class Fetcher {
 class SendMessage {
   final SendPort sendPort;
   final String pictureSource;
-  final bool disableBypassSni;
+  final NetworkMode networkMode;
   final RootIsolateToken rootIsolateToken;
 
   SendMessage(
     this.sendPort,
     this.pictureSource,
-    this.disableBypassSni,
+    this.networkMode,
     this.rootIsolateToken,
   );
 }
 
 entryPoint(SendMessage message) async {
   String pictureSource = message.pictureSource;
+  var currentPictureSource = pictureSource;
+  var currentNetworkMode = message.networkMode;
   RootIsolateToken rootIsolateToken = message.rootIsolateToken;
   SendPort sendPort = message.sendPort;
   LPrinter.d("entryPoint ====== $pictureSource");
-  String inSource = pictureSource;
   BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
   await r.Rhttp.init();
   await Hoster.initMap();
   Hoster.dnsQueryFetcher();
   final dio = Dio();
   final client = await r.RhttpCompatibleClient.createSync(
-    settings: (message.disableBypassSni || pictureSource != ImageHost)
-        ? null
-        : r.ClientSettings(
-            tlsSettings: r.TlsSettings(verifyCertificates: false, sni: false),
-            dnsSettings: r.DnsSettings.dynamic(
-              resolver: (host) async {
-                if (host == 'i.pximg.net') {
-                  return [Hoster.iPximgNet()];
-                }
-                if (host == 's.pximg.net') {
-                  return [Hoster.sPximgNet()];
-                }
-                return await InternetAddress.lookup(
-                  host,
-                ).then((value) => value.map((e) => e.address).toList());
-              },
-            ),
-          ),
+    settings: PixezNetworkSettings.forImages(
+      currentPictureSource,
+      currentNetworkMode,
+    ),
+  );
+  dio.interceptors.add(
+    PixivImageSourceInterceptor(
+      networkMode: () => currentNetworkMode,
+      pictureSource: () => currentPictureSource,
+    ),
   );
   dio.httpClientAdapter = ConversionLayerAdapter(client);
   DioCacheManager.initialize(dio);
@@ -292,30 +309,34 @@ entryPoint(SendMessage message) async {
   receivePort.listen((message) async {
     try {
       IsoContactBean isoContactBean = message;
+      if (isoContactBean.state == IsoTaskState.RELOAD) {
+        final reload = isoContactBean.data as NetworkReloadMessage;
+        currentNetworkMode = reload.networkMode;
+        currentPictureSource = reload.source ?? PixezNetworkSettings.imageHost;
+        final newClient = await r.RhttpCompatibleClient.createSync(
+          settings: PixezNetworkSettings.forImages(
+            currentPictureSource,
+            currentNetworkMode,
+          ),
+        );
+        dio.httpClientAdapter = ConversionLayerAdapter(newClient);
+        return;
+      }
       TaskBean taskBean = isoContactBean.data;
       switch (isoContactBean.state) {
         case IsoTaskState.ERROR:
           break;
         case IsoTaskState.APPEND:
           try {
-            inSource = taskBean.source!;
+            currentPictureSource = taskBean.source ?? pictureSource;
+            currentNetworkMode = taskBean.networkMode ?? message.networkMode;
             print("========taskBean.savePath: ${taskBean.savePath}");
             var savePath =
                 taskBean.savePath! +
                 Platform.pathSeparator +
                 taskBean.fileName!;
-            String trueUrl = taskBean.url!;
-            String originHost = Uri.parse(taskBean.url!).host;
-            if (taskBean.byPass == true) {
-            } else {
-              if (originHost == ImageHost) {
-                trueUrl = 'https://${inSource}${Uri.parse(taskBean.url!).path}';
-              } else {
-                trueUrl = taskBean.url!;
-              }
-            }
             await for (final response in pixivCacheManager!.getFileStream(
-              trueUrl,
+              taskBean.url!,
               headers: {
                 "referer": "https://app-api.pixiv.net/",
                 "User-Agent": "PixivIOSApp/5.8.0",

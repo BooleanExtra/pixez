@@ -28,25 +28,19 @@ class Hoster {
     'oauth.secure.pixiv.net',
   ];
 
-  static Dio httpClient = Dio(
-    BaseOptions(
-      baseUrl: 'https://1.1.1.1',
-    ),
-  );
-  static r.RhttpCompatibleClient? compatibleClient;
+  static Dio httpClient = Dio(BaseOptions(baseUrl: 'https://1dot1dot1dot1.cloudflare-dns.com'));
 
   static Future<Dio> createDioClient() async {
-    if (compatibleClient == null) {
-      return httpClient;
-    }
-    compatibleClient ??= await r.RhttpCompatibleClient.create(
-        settings: userSetting.disableBypassSni
-            ? null
-            : r.ClientSettings(
-                tlsSettings:
-                    r.TlsSettings(verifyCertificates: false, sni: false),
-              ));
-    httpClient.httpClientAdapter = ConversionLayerAdapter(compatibleClient!);
+    final compatibleClient = await r.RhttpCompatibleClient.create(
+      settings: r.ClientSettings(
+        dnsSettings: r.DnsSettings.static(
+          overrides: {
+            "1dot1dot1dot1.cloudflare-dns.com": ['104.16.248.249', '104.16.249.249'],
+          },
+        ),
+      )
+    );
+    httpClient.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
     return httpClient;
   }
 
@@ -78,15 +72,14 @@ class Hoster {
   static Future<void> dnsQuery(String name) async {
     try {
       await createDioClient();
-      Response response = await httpClient.get('/dns-query',
-          options: Options(
-            headers: {
-              'accept': 'application/dns-json',
-            },
-          ),
-          queryParameters: {'name': name});
-      OnezeroResponse model =
-          OnezeroResponse.fromJson(jsonDecode(response.data));
+      Response response = await httpClient.get(
+        '/dns-query',
+        options: Options(headers: {'accept': 'application/dns-json'}),
+        queryParameters: {'name': name},
+      );
+      OnezeroResponse model = OnezeroResponse.fromJson(
+        jsonDecode(response.data),
+      );
       final answer = model.answer.toList();
       answer.sort((l, r) => r.ttl.compareTo(l.ttl));
       final host = answer.first.data;
